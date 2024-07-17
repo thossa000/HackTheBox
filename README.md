@@ -5,7 +5,7 @@
 
 </p>
 
-<h3>Offensive Security</h3>
+<h3>Offensive Security - HackTheBox Labs</h3>
 
 > Machines PWNd 
 
@@ -22,7 +22,7 @@
 
 
 
-<h3>Defensive Security</h3>
+<h3>Defensive Security - HackTheBox Labs</h3>
 
 > Sherlocks
   
@@ -32,13 +32,12 @@
   |2. |[]()|[Unit42]|
   |3. |[]()|[BFT]|
 
-<details>
-<br>
-<summary> Misc </summary>
-  
-|No.|Column 1|Column 2|Column 3|
+
+<h3>Security Learning - HackTheBox Academy</h3>
+
+> Modules
+
+|No.|Fundamental|Easy|Medium|
 |:-:|:-------:|:-------:|:-------:|
-|1. 
+|1. |[Linux Fundamentals]|
 
-
-</details>
