@@ -69,12 +69,91 @@ Besides Bash, there also exist other shells like Tcsh/Csh, Ksh, Zsh, Fish shell 
 
 ## The Shell
 ### Prompt Description
-### Getting Help
-### System Information
-## Workflow
+The home directory for a user is marked with a tilde <~> and is the default folder when we log in.
+```
+<username>@<hostname>[~]$
+```
+The dollar sign stands for a user, if logged in as root, the character changes to a hash (#).
+Unpriviledged shell prompt - $
+Priviledged shell prompt - #
 
+The prompt can be customized by configuring the .bashrc file for the bash shell. For example, we can use: the \u character to represent the current username, \h for the hostname, and \w for the current working directory.
+
+### Getting Help
+It is essential to use man pages and help functions to familiarize ourselves with unfamiliar tools and their parameters, as these resources provide detailed manuals and explanations, enabling us to effectively use and discover tricks with various tools.
+
+Example:
+```
+$man curl
+
+  curl(1)                                                             Curl Manual                                                            curl(1)
+
+NAME
+       curl - transfer a URL
+
+SYNOPSIS
+       curl [options] [URL...]
+
+DESCRIPTION
+       curl  is  a tool to transfer data from or to a server, using one of the supported protocols (DICT, FILE, FTP, FTPS, GOPHER, HTTP, HTTPS,  
+       IMAP, IMAPS,  LDAP,  LDAPS,  POP3,  POP3S,  RTMP, RTSP, SCP, SFTP, SMB, SMBS, SMTP, SMTPS, TELNET, and TFTP). The command is designed to work without user interaction.
+
+       curl offers a busload of useful tricks like proxy support, user authentication, FTP upload, HTTP post, SSL connections, cookies, file transfer resume, Metalink,  and more. As we will see below, the number of features will make our head spin!
+
+       curl is powered by libcurl for all transfer-related features.  See libcurl(3) for details.
+
+Manual page curl(1) line 1 (press h for help or q to quit)
+```
+
+### System Information
+A list of tools to use to get system information:
+|Command|Description|
+|:-:|:-:|
+|whoami| Displays current username|
+|id| Returns users identity|
+|hostname| Sets or prints the name of current host system|
+|uname| Prints basic information about the operating system name and system hardware|
+|pwd|	Returns present working directory name|
+|ifconfig| The utility is used to assign or to view an address to a network interface and/or configure network interface parameters|
+|ip| A utility to show or manipulate routing, network devices, interfaces and tunnels|
+|netstat| Shows network status|
+|ss| Another utility to investigate sockets|
+|ps| Shows process status|
+|who| Displays who is logged in|
+|env|	Prints environment or sets and executes command|
+|lsblk| Lists block devices|
+|lsusb|	Lists USB devices|
+|lsof|	Lists open files|
+|lspci| Lists PCI devices|
+## Workflow
+### Navigation
+### Working with Files and Directories
 
 ## System Management
+### User Management
+
+### Package Management
+It is crucial to understand Linux package managers and their usage for installing, updating, or removing packages, whether maintaining systems professionally or personally, as these managers handle software binaries, configuration files, dependencies, and updates.
+The features that most package management systems provide are:
+- Package downloading
+- Dependency resolution
+- A standard binary package format
+- Common installation and configuration locations
+- Additional system-related configuration and functionality
+- Quality control
+
+Here is a list of different package management programs:
+|Command|Description|
+|:-:|:-:|
+|dpkg|The dpkg is a tool to install, build, remove, and manage Debian packages. The primary and more user-friendly front-end for dpkg is aptitude.|
+|apt|Apt provides a high-level command-line interface for the package management system.|
+|aptitude|Aptitude is an alternative to apt and is a high-level interface to the package manager.|
+|snap|Install, configure, refresh, and remove snap packages. Snaps enable the secure distribution of the latest apps and utilities for the cloud, servers, desktops, and the internet of things.|
+|gem|Gem is the front-end to RubyGems, the standard package manager for Ruby.|
+|pip|Pip is a Python package installer recommended for installing Python packages that are not available in the Debian archive. It can work with version control repositories (currently only Git, Mercurial, and Bazaar repositories), logs output extensively, and prevents partial installs by downloading all requirements before starting installation.|
+|git|Git is a fast, scalable, distributed revision control system with an unusually rich command set that provides both high-level operations and full access to internals.|
+
+### Service and Process Management
 
 
 ## Linux Networking
