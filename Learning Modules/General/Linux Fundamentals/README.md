@@ -127,8 +127,36 @@ A list of tools to use to get system information:
 |lspci| Lists PCI devices|
 ## Workflow
 ### Navigation
-### Working with Files and Directories
+To navigate through the terminal we can use a few basic commands.
 
+pwd - will show the present working directory 
+
+ls - will list the contents in the current directory or one that is specified. Options can be added for additional details .ie '-l' to display more information about the content like type, permission, ownership, size, and creation date.
+
+cd - to change directories. The value '~' will navigate you back to your home directory. and '..' will navigate back to the parent directory.
+
+### Working with Files and Directories
+The following commands are used to Create, Move, Copy, and Delete files and directories in the Linux terminal.
+
+|Command|Description|
+|:-:|:-:|
+|touch| Creates an empty file|
+|mkdir| Creates a new directory folder|
+|mv| To move a file to another directory, like cut in Windows|
+|cp| To copy a file to another directory|
+|tree| Shows the whole structure of the parent directory with contents of all child directories|
+
+### Editing Files
+
+Nano and VIM are popular tools used to edit files in the terminal.
+
+Use the help options to learn the ways to interact.
+
+From the command line the 'cat' tool can be used to view files without editing.
+
+### Find Files and Directories
+
+### File Descriptors and Redirections
 ## System Management
 ### User Management
 
