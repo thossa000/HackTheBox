@@ -39,5 +39,5 @@
 
 |No.|Fundamental|Easy|Medium|
 |:-:|:-------:|:-------:|:-------:|
-|1. |[Linux Fundamentals]|
+|1. |[Linux Fundamentals](https://github.com/thossa000/HackTheBox/blob/main/Learning%20Modules/General/Linux%20Fundamentals/README.md)|
 
