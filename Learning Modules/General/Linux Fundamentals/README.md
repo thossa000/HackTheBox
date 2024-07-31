@@ -166,6 +166,43 @@ find - used to find files and folders but to also filter results for your search
 locate - the find command is more resource intensive as it searches through the specified directory for all matches. The command locate offers a quicker way to search through the system. In contrast to the find command, locate works with a local database that contains all information about existing files and folders. We can update this database with the <i>$sudo updatedb</i>
 
 ### File Descriptors and Redirections
+When using search commands in the terminal, 3 data stream components make up the operation.
+
+Data Stream for Input
+
+  STDIN – 0
+        
+Data Stream for Output
+
+  STDOUT – 1
+        
+Data Stream for Output that relates to an error occurring.
+
+  STDERR – 2
+
+This allows us to filter the outputs we receive from our search input. ie. <i>find /etc/ -name shadow</i> (this will find all files/directories containing the name shadow in the /etc/ directory.
+      
+      STDIN - 0 : $find /etc/ -name shadow
+      STDOUT - 1: /etc/shadow
+      STDERR - 2: find '/etc/ssl/private': Permission denied
+                  find '/etc/polkit-1/localauthority': Permission denied
+
+In this case our find command received two errors due to a lack of permissions. This output can be cleaned up to only show expected outputs by redirecting the STDERR - 2 data stream to a file or discarded.
+
+      STDIN - 0 : find /etc/ -name shadow 2>/dev/null
+      STDOUT - 1: /etc/shadow
+      STDERR - 2: 
+
+All errors are discarded to the null device which discards the data.
+
+Outputting different data streams to files can be handy when keeping records of information:
+
+    find /etc/ -name passwd >> stdout.txt 2>/dev/null
+
+In the example, errors are discarded while expected outputs are appended to a file called stdout.txt.
+
+###Filter Contents
+
 ## System Management
 ### User Management
 
