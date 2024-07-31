@@ -156,6 +156,15 @@ From the command line the 'cat' tool can be used to view files without editing.
 
 ### Find Files and Directories
 
+Many tools in the terminal can be used to locate files and directories:
+
+which - locate the file path for an executable. ie. <i>$which python</i>  will return the file path for the python tool <i>/usr/bin/python</i> 
+
+find - used to find files and folders but to also filter results for your search with options.
+<i>find <location> <options></i>
+
+locate - the find command is more resource intensive as it searches through the specified directory for all matches. The command locate offers a quicker way to search through the system. In contrast to the find command, locate works with a local database that contains all information about existing files and folders. We can update this database with the <i>$sudo updatedb</i>
+
 ### File Descriptors and Redirections
 ## System Management
 ### User Management
