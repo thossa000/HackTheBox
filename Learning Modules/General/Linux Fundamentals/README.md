@@ -201,7 +201,28 @@ Outputting different data streams to files can be handy when keeping records of 
 
 In the example, errors are discarded while expected outputs are appended to a file called stdout.txt.
 
-###Filter Contents
+### Filter Contents
+Commands can be used to display file information without an editor. Here are commands that can be used to read a file:
+
+|Command|Description|
+|:-:|:-:|
+|cat|Display the entire file's content|
+|more|Pager tool to scroll through the output of the file, instead of displaying the whole file at once like 'cat'|
+|less|Similar to 'more', however quitting the view will with the 'Q' option will remove the displayed file from the terminal unlike 'more'|
+|head|Prints the first 10 lines of the file|
+|tail|Prints the last 10 lines of the file|
+|sort|Sort output alphabetically instead of the original order|
+|grep|Search for a match to output in the file|
+|cut|Set a delimiter in the file, ie. delimit on each "-d':'" for the first position, "-f1":  cut -d":" -f1|
+|tr|Replace characters in the output with a specified output, ie. tr ":" " ", this will replace each  ":" with a space|
+|column|Sort information into a table|
+|awk|Prints the specified position for each row in a file, if you only want to see the first and last value of each row, use the following: awk '{print $1, $NF}'|
+|sed|Modify the output by replacing specified values with another, to replace 'root' with 'admin' in your output use: sed 's/root/admin/g'|
+|wc|Counts the number of specified values in the output (specify with options for the wc command ie. -l for lines)|
+
+### Regular Experession
+
+### Permission Management
 
 ## System Management
 ### User Management
