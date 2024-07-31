@@ -220,9 +220,46 @@ Commands can be used to display file information without an editor. Here are com
 |sed|Modify the output by replacing specified values with another, to replace 'root' with 'admin' in your output use: sed 's/root/admin/g'|
 |wc|Counts the number of specified values in the output (specify with options for the wc command ie. -l for lines)|
 
-### Regular Experession
+### Regular Expression
+A regular expression is a sequence of letters and symbols forming a search pattern, enhanced by metacharacters, used in tools like grep or sed and commonly implemented in web applications for validating user input.
+
+<table>
+  <tr>
+    <th>Expression</th>
+    <th>Description</th>
+  </tr>
+  <tr>
+    <td align="center">(a)</td>
+    <td>The round brackets are used to group parts of a regex. Within the brackets, you can define further patterns which should be processed together.</td>
+  </tr>
+  <tr>
+    <td align="center">[a-z]</td>
+    <td>The square brackets are used to define character classes. Inside the brackets, you can specify a list of characters to search for.</td>
+  </tr>
+  <tr>
+    <td align="center">{1,10}</td>
+    <td>The curly brackets are used to define quantifiers. Inside the brackets, you can specify a number or a range that indicates how often a previous pattern should be repeated.</td>
+  </tr>
+  <tr>
+    <td align="center">|</td>
+    <td>Also called the OR operator and shows results when one of the two expressions matches</td>
+  </tr>
+  <tr>
+    <td align="center">.*</td>
+    <td>Also called the AND operator and displayed results only if both expressions match</td>
+  </tr>
+</table>
 
 ### Permission Management
+
+The whole permission system on Linux systems is based on the octal number system, and basically, there are three different types of permissions a file or directory can be assigned:
+
+(r) - Read
+
+(w) - Write
+
+(x) - Execute
+
 
 ## System Management
 ### User Management
