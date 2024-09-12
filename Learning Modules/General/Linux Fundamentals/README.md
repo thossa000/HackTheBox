@@ -287,6 +287,9 @@ Here is a list of different package management programs:
 
 ### Service and Process Management
 
+### Task Scheduling
+
+### Network Services
 
 ## Linux Networking
 
