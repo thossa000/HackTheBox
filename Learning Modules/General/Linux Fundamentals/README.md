@@ -286,8 +286,35 @@ Here is a list of different package management programs:
 |git|Git is a fast, scalable, distributed revision control system with an unusually rich command set that provides both high-level operations and full access to internals.|
 
 ### Service and Process Management
+There are two types of services, internal services required by the system to run, such services run in the background without any user interaction. These are also called daemons and are identified by the letter 'd' at the end of the program name, for example, sshd or systemd. 
+Second are user services that are installed and ran by the user.
 
+There are three possibilities to run several commands, one after the other. These are separated by:
+
+- Semicolon (;)
+- Double ampersand characters (&&)
+- Pipes (|)
+  
 ### Task Scheduling
+Task scheduling is a feature in Linux systems that allows users to schedule and automate tasks at specified times and frequencies. Examples include automatically updating software, running scripts, cleaning databases, and automating backups.
+
+Cron is a tool commonly used to automate tasks. Systemd can also be used to setup scheduled jobs by creating a timer and service then activating the timer when required.
+To set up the cron daemon, we need to store the tasks in a file called crontab and then tell the daemon when to run the tasks. 
+A crontab file holds the time frequency and name of the script that will run:
+
+```
+# System Update
+* */6 * * /path/to/update_software.sh
+
+# Execute scripts
+0 0 1 * * /path/to/scripts/run_scripts.sh
+
+# Cleanup DB
+0 0 * * 0 /path/to/scripts/clean_database.sh
+
+# Backups
+0 0 * * 7 /path/to/scripts/backup.sh
+```
 
 ### Network Services
 
