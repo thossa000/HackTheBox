@@ -317,7 +317,15 @@ A crontab file holds the time frequency and name of the script that will run:
 ```
 
 ### Network Services
+SSH - is widely used to securely manage remote systems and securely access remote systems to execute commands or transfer files. The most commonly used SSH server is the OpenSSH server.
 
+NFS - a network protocol that allows us to store and manage files on remote systems as if they were stored on the local system. For Linux, there are several NFS servers, including NFS-UTILS (Ubuntu), NFS-Ganesha (Solaris), and OpenNFS (Redhat Linux). We can configure NFS via the configuration file /etc/exports.
+
+VPN - is a technology that allows us to connect securely to another network as if we were directly in it. This is done by creating an encrypted tunnel connection between the client and the server, which means that all data transmitted over this connection is encrypted.
+
+cURL - is a tool that allows us to transfer files from the shell over protocols like HTTP, HTTPS, FTP, SFTP, FTPS, or SCP.
+
+Wget - An alternative to cURL. With this tool, we can download files from FTP or HTTP servers directly from the terminal, and it serves as a good download manager. Useful when website content needs to be downloaded and stored instead of just viewed.
 ## Linux Networking
 
 ## Linux Hardening
