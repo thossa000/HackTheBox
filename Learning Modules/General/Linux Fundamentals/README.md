@@ -327,7 +327,7 @@ cURL - is a tool that allows us to transfer files from the shell over protocols 
 
 Wget - An alternative to cURL. With this tool, we can download files from FTP or HTTP servers directly from the terminal, and it serves as a good download manager. Useful when website content needs to be downloaded and stored instead of just viewed.
 ## Linux Networking
-
+XServer - Graphical remoting tools, uses X11 protocol on ports 6000-6009.
 ## Linux Hardening
 
 ## Linux Distros vs. Solaris
