@@ -327,7 +327,32 @@ cURL - is a tool that allows us to transfer files from the shell over protocols 
 
 Wget - An alternative to cURL. With this tool, we can download files from FTP or HTTP servers directly from the terminal, and it serves as a good download manager. Useful when website content needs to be downloaded and stored instead of just viewed.
 ## Linux Networking
-XServer - Graphical remoting tools, uses X11 protocol on ports 6000-6009.
+XServer - Graphical remoting tool, uses X11 protocol on ports 6000-6009. GUI is generated on local machine instead of on target machine, saving bandwidth to transport GUI data over the network. X11 is vulnerable due to transmitting unencrypted data, however this is resolved by tunelling traffic through SSH, configured in /etc/ssh/sshd_config.
+
+The X Display Manager Control Protocol (XDMCP) protocol is used by the X Display Manager for communication through UDP port 177. This is used to manage multiple sessions on other machines. XDMCP is vulnerable to MITM attacks to run arbitrary commands, access sensitive data, or perform other actions that could compromise the security of the system.
+
+Virtual Network Computing (VNC) is based on the RFB protocol and one of the most common remote desktop sharing tools, this is generally considered secure, using encryption in transit and authentication for sessions. VNC normally listens on TCP port 5900, addtional displays for a host can be added through ports 590X. 
 ## Linux Hardening
+Ensure OS and packages are updated reguarly to receive latest security patches.
+
+Configure Firewall rules and/or iptable to restrict network port traffic in/out of hosts. Also configuring TCPWrapper through hosts allow/deny configuration files to restrict remote access to services.
+
+Enforcing principal of least privilege for server access. Ex. Having root login disabled in SSH. Configuring allowed sudoers on the host. 
+
+Configure audit logs of activity on hosts, to allow for the option to review host activity to identify signs of potential compromise or misconfigurations. 
+
+Enable security modules such as AppArmor of SELinux to enforce standard security policies.
+
+In addition, some security settings should be made, such as:
+
+- Removing or disabling all unnecessary services and software
+- Removing all services that rely on unencrypted authentication mechanisms
+- Ensure NTP is enabled and Syslog is running
+- Ensure that each user has its own account
+- Enforce the use of strong passwords
+- Set up password aging and restrict the use of previous passwords
+- Locking user accounts after login failures
+- Disable all unwanted SUID/SGID binaries
+
 
 ## Linux Distros vs. Solaris
