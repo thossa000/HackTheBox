@@ -353,3 +353,38 @@ In addition, some security settings should be made, such as:
 - Set up password aging and restrict the use of previous passwords
 - Locking user accounts after login failures
 - Disable all unwanted SUID/SGID binaries
+
+## Linux Keyboard Shortcuts
+
+[CTRL] + A - Move the cursor to the beginning of the current line.
+
+[CTRL] + E - Move the cursor to the end of the current line.
+
+[CTRL] + [←] / [→] - Jump at the beginning of the current/previous word.
+
+[ALT] + B / F - Jump backward/forward one word.
+
+[CTRL] + U - Erase everything from the current position of the cursor to the beginning of the line.
+
+[CTRL] + K - Erase everything from the current position of the cursor to the end of the line.
+
+[CTRL] + W - Erase the word preceding the cursor position.
+
+[CTRL] + Y - Pastes the erased text or word.
+
+[CTRL] + C - Ends the current task/process by sending the SIGINT signal. \
+
+[CTRL] + D - Close STDIN pipe that is also known as End-of-File (EOF) or End-of-Transmission.
+
+[CTRL] + L - Clears the terminal.
+
+[CTRL] + Z - Suspend the current process by sending the SIGTSTP signal.
+
+[CTRL] + R - Search through command history for commands we typed previously that match our search patterns.
+
+[ALT] + [TAB] - Switch between opened applications.
+
+[CTRL] + [+] - Zoom in.
+
+[CTRL] + [-] - Zoom out.
+
