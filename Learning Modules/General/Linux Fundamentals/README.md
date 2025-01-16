@@ -353,6 +353,3 @@ In addition, some security settings should be made, such as:
 - Set up password aging and restrict the use of previous passwords
 - Locking user accounts after login failures
 - Disable all unwanted SUID/SGID binaries
-
-
-## Linux Distros vs. Solaris
