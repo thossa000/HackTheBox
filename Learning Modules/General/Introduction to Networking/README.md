@@ -171,3 +171,55 @@ ICMP - is a protocol used by devices to communicate with each other on the Inter
 |Solaris| 255|
 
 NOTE: TTL can be changed by the user, do not rely on these values to identify the OS type of a device.
+
+## Key Exchange Mechanisms
+### Diffie-Hellman 
+One common key exchange method is the Diffie-Hellman key exchange, which allows two parties to agree on a shared secret key without any prior communication or shared private information. It is often used as the basis for establishing secure communication channels, such as in the Transport Layer Security (TLS) protocol that is used to protect web traffic. Disadvantages of a Diffie-Hellman key exchange is its vulnerability to MITM atttacks and relatively large amount of CPU power to generate the shared secret key.
+
+### Rivest–Shamir–Adleman (RSA)
+Uses large prime numbers to generate a shared secret key. This method relies on the fact that it is relatively easy to multiply large prime numbers together but challenging to factor the resulting number back into its prime factors. RSA is used for many functions including:
+
+- Encrypting and signing messages to provide confidentiality and authentication
+- Protecting data in transit over networks, such as in the Secure Socket Layer (SSL) and TLS protocols
+- Generating and verifying digital signatures, which are used to provide authenticity and integrity for electronic documents and other digital data
+- Authenticating users and devices, such as in the Public Key Cryptography for Initial Authentication in Kerberos (PKINIT) protocol used by the Kerberos network authentication system
+- Protecting sensitive information, such as in the encryption of personal data and confidential documents
+
+### Elliptic curve Diffie-Hellman (ECDH)
+A variant of Diffie-Hellman key exchange that uses elliptic curve cryptography to generate the shared secret key. It has the advantage of being more efficient and secure than the original Diffie-Hellman algorithm. The Elliptic Curve Digital Signature Algorithm (ECDSA) uses elliptic curve cryptography to generate digital signatures that can authenticate the parties involved in the key exchange.
+
+Summary:
+
+|Algorithm|	Acronym|	Security|
+|:-:|:-:|:-:|
+|Diffie-Hellman|	DH|	Relatively secure and computationally efficient|
+|Rivest–Shamir–Adleman|	RSA|	Widely used and considered secure, but computationally intensive|
+|Elliptic Curve Diffie-Hellman|	ECDH|	Provides enhanced security compared to traditional Diffie-Hellman|
+|Elliptic Curve Digital Signature Algorithm|	ECDSA|	Provides enhanced security and efficiency for digital signature generation|
+
+### Internet Key Exchange (IKE)
+Uses a combination of the Diffie-Hellman key exchange algorithm and other cryptographic techniques to securely exchange keys and negotiate security parameters. It is a key component of many VPN solutions, as it enables the secure exchange of keys and other security information between the VPN client and server. This allows the VPN to establish an encrypted tunnel through which data can be transmitted securely.
+
+## Authentication Protocols
+
+|Protocol	|Description|
+|:-:|:-:|
+|Kerberos	|Key Distribution Center (KDC) based authentication protocol that uses tickets in domain environments.|
+|SRP|	This is a password-based authentication protocol that uses cryptography to protect against eavesdropping and man-in-the-middle attacks.|
+|SSL|	A cryptographic protocol used for secure communication over a computer network.|
+|TLS|	TLS is a cryptographic protocol that provides communication security over the internet. It is the successor to SSL.|
+|OAuth	|An open standard for authorization that allows users to grant third-party access to their web resources without sharing their passwords.|
+|OpenID	|OpenID is a decentralized authentication protocol that allows users to use a single identity to sign in to multiple websites.|
+|SAML	|Security Assertion Markup Language is an XML-based standard for securely exchanging authentication and authorization data between parties.|
+|2FA|	An authentication method that uses a combination of two different factors to verify a user's identity.|
+|FIDO	|The Fast IDentity Online Alliance is a consortium of companies working to develop open standards for strong authentication.|
+|PKI|	PKI is a system for securely exchanging information based on the use of public and private keys for encryption and digital signatures.|
+|SSO	|An authentication method that allows a user to use a single set of credentials to access multiple applications.|
+|MFA	|MFA is an authentication method that uses multiple factors, such as something the user knows (a password), something the user has (a phone), or something the user is (biometric data), to verify their identity.|
+|PAP|	A simple authentication protocol that sends a user's password in clear text over the network.|
+|CHAP|	An authentication protocol that uses a three-way handshake to verify a user's identity.|
+|EAP	|A framework for supporting multiple authentication methods, allowing for the use of various technologies to verify a user's identity.|
+|SSH |This is a network protocol for secure communication between a client and a server. We can use it for remote command-line access and remote command execution, as well as for secure file transfer. SSH uses encryption to protect against eavesdropping and other attacks and can also be used for authentication.|
+|HTTPS	|This is a secure version of the HTTP protocol used for communication on the internet. HTTPS uses SSL/TLS to encrypt communication and provide authentication, ensuring that third parties cannot intercept and read the transmitted data. It is widely used for secure communication over the internet, particularly for web browsing.|
+|LEAP	|LEAP is a wireless authentication protocol developed by Cisco. It uses EAP to provide mutual authentication between a wireless client and a server and uses the RC4 encryption algorithm to encrypt communication between the two. Unfortunately, LEAP is vulnerable to dictionary attacks and other security vulnerabilities and has been largely replaced by more secure protocols such as EAP-TLS and PEAP.|
+|PEAP	|PEAP on the other hand is a secure tunneling protocol used for wireless and wired networks. It is based on EAP and uses TLS to encrypt communication between a client and a server. PEAP uses a server-side certificate to authenticate the server and can also be used to authenticate the client using various methods, such as passwords, certificates, or biometric data. PEAP is widely used in enterprise networks for secure authentication.|
