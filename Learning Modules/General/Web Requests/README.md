@@ -69,6 +69,22 @@ The following are some of the commonly seen examples from each of the above HTTP
 |404 Not Found|	Returned when the client requests a resource that doesn't exist on the server.|
 |500 Internal Server Error|	Returned when the server cannot process the request.|
 
+## CRUD
+In general, APIs perform 4 main operations on the requested database entity:
+
+|Operation|	HTTP Method|	Description|
+|:-:|:-:|:-:|
+|Create|	POST|	Adds the specified data to the database table.|
+|Read|	GET|	Reads the specified entity from the database table.|
+|Update|	PUT|	Updates the data of the specified database table.|
+|Delete|	DELETE|	Removes the specified row from the database table.|
+
+These four operations are mainly linked to the commonly known CRUD APIs, but the same principle is also used in REST APIs.
+
+PUT example - thossa00@htb[/htb]$ curl -X PUT http://<SERVER_IP>:<PORT>/api.php/city/london -d '{"city_name":"New_HTB_City", "country_name":"HTB"}' -H 'Content-Type: application/json'
+
+DELETE example - thossa00@htb[/htb]$ curl -X DELETE http://<SERVER_IP>:<PORT>/api.php/city/london
+
 ## cURL
 cURL (client URL) is a command-line tool and library that primarily supports HTTP along with many other protocols. It is capable of sending various types of web requests from the command line, which makes it very useful in web penetration tests.
 
@@ -76,6 +92,7 @@ Basic cURL request:  #curl website.com
 
 We may also use cURL to download a page or a file and output the content into a file using the -O flag. This will provide a status output but this can be silenced with the -s flag.
 
--I flag to send a HEAD request and only display the response headers. We can use the -i flag to display both the headers and the response body
+-I flag to send a HEAD request and only display the response headers. We can use the -i flag to display both the headers and the response body.
+-v flag for verbose details. -X flag to set an HTTP method other than GET (ie. POST, PUT, DELETE). -b flag to set your own cookie. -H flag to set a header value. -d flag sends data in a POST request.
 
 NOTE: The -h (help) flag or #man curl can be used to explore other cURL options.
