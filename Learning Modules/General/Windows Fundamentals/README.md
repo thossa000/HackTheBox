@@ -74,3 +74,119 @@ The root directory (also known as the boot partition) is where the operating sys
 The tree utility is useful for graphically displaying the directory structure of a path or disk in the Windows CMD.
 
 ## File Systems
+There are 5 types of Windows file systems: FAT12, FAT16, FAT32, NTFS, and exFAT. FAT12 and FAT16 are no longer used on modern Windows operating systems. FAT32 (File Allocation Table) is widely used across many types of storage devices such as USB memory sticks and SD cards. The "32" in the name refers to the fact that FAT32 uses 32 bits of data for identifying data clusters on a storage device.
+
+Pros of FAT32:
+
+- Device compatibility - it can be used on computers, digital cameras, gaming consoles, smartphones, tablets, and more.
+- Operating system cross-compatibility - It works on all Windows operating systems starting from Windows 95 and is also supported by MacOS and Linux.
+
+Cons of FAT32:
+
+- Can only be used with files that are less than 4GB.
+- No built-in data protection or file compression features.
+- Must use third-party tools for file encryption.
+
+NTFS (New Technology File System) is the default Windows file system since Windows NT 3.1. In addition to making up for the shortcomings of FAT32, NTFS also has better support for metadata and better performance due to improved data structuring.\
+
+Pros of NTFS:
+
+- NTFS is reliable and can restore the consistency of the file system in the event of a system failure or power loss.
+- Provides security by allowing us to set granular permissions on both files and folders.
+- Supports very large-sized partitions.
+- Has journaling built-in, meaning that file modifications (addition, modification, deletion) are logged.
+
+Cons of NTFS:
+
+- Most mobile devices do not support NTFS natively.
+- Older media devices such as TVs and digital cameras do not offer support for NTFS storage devices.
+
+The NTFS file system has many basic and advanced permissions. Some of the key permission types are:
+
+|Permission Type|	Description|
+|:-:|:-:|
+|Full Control|	Allows reading, writing, changing, deleting of files/folders.|
+|Modify|	Allows reading, writing, and deleting of files/folders.|
+|List Folder Contents|	Allows for viewing and listing folders and subfolders as well as executing files. Folders only inherit this permission.|
+|Read and Execute|	Allows for viewing and listing files and subfolders as well as executing files. Files and folders inherit this permission.|
+|Write|	Allows for adding files to folders and subfolders and writing to a file.|
+|Read|	Allows for viewing and listing of folders and subfolders and viewing a file's contents.|
+|Traverse Folder|	This allows or denies the ability to move through folders to reach other files or folders. For example, a user may not have permission to list the directory contents or view files in the documents or web apps directory but with Traverse Folder permissions applied, they can access the backup archive.|
+|Special Permissions|	A variety of advanced permissions options.|
+
+Files and folders inherit the NTFS permissions of their parent folder for ease of administration. An administrator can disable permissions inheritance if permissions do need to be set explicitly. Anytime we see a gray checkmark next to a permission, it was inherited from a parent directory. By default, 
+
+NTFS permissions on files and folders in Windows can be managed using the File Explorer GUI under the security tab. Apart from the GUI, we can also achieve a fine level of granularity over NTFS file permissions in Windows from the command line using the icacls utility.
+
+```
+C:\htb> icacls c:\windows
+c:\windows NT SERVICE\TrustedInstaller:(F)
+           NT AUTHORITY\SYSTEM:(M)
+           NT AUTHORITY\SYSTEM:(OI)(CI)(IO)(F)
+           BUILTIN\Users:(RX)
+```
+The resource access level is listed after each user in the output. The possible inheritance settings are:
+
+- (CI): container inherit
+- (OI): object inherit
+- (IO): inherit only
+- (NP): do not propagate inherit
+- (I): permission inherited from parent container
+
+Basic access permissions are as follows:
+
+- F : full access
+- D :  delete access
+- N :  no access
+- M :  modify access
+- RX :  read and execute access
+- R :  read-only access
+- W :  write-only access
+
+## Windows Services & Processes
+
+Processes run in the background on Windows systems. They either run automatically as part of the Windows operating system or are started by other installed applications.
+
+Windows services are managed via the Service Control Manager (SCM) system, accessible via the services.msc MMC add-in. Service statuses can appear as Running, Stopped, or Paused, and they can be set to start manually, automatically, or on a delay at system boot. Windows has three categories of services: Local Services, Network Services, and System Services. Services can usually only be created, modified, and deleted by users with administrative privileges. Misconfigurations around service permissions are a common privilege escalation vector on Windows systems.
+
+In Windows, we have some critical system services that cannot be stopped and restarted without a system restart. If we update any file or resource in use by one of these services, we must restart the system.
+
+- smss.exe -	Session Manager SubSystem. Responsible for handling sessions on the system.
+- csrss.exe	- Client Server Runtime Process. The user-mode portion of the Windows subsystem.
+- wininit.exe	- Starts the Wininit file .ini file that lists all of the changes to be made to Windows when the computer is restarted after installing a program.
+- logonui.exe	- Used for facilitating user login into a PC
+- lsass.exe	- The Local Security Authentication Server verifies the validity of user logons to a PC or server. It generates the process responsible for authenticating users for the Winlogon service.
+- services.exe	- Manages the operation of starting and stopping services.
+- winlogon.exe	- Responsible for handling the secure attention sequence, loading a user profile on logon, and locking the computer when a screensaver is running.
+System	A background system process that runs the Windows kernel.
+- svchost.exe with RPCSS -	Manages system services that run from dynamic-link libraries (files with the extension .dll) such as "Automatic Updates," "Windows Firewall," and "Plug and Play." Uses the Remote Procedure Call (RPC) Service (RPCSS).
+- svchost.exe with Dcom/PnP -	Manages system services that run from dynamic-link libraries (files with the extension .dll) such as "Automatic Updates," "Windows Firewall," and "Plug and Play." Uses the Distributed Component Object Model (DCOM) and Plug and Play (PnP) services.
+
+## Non-Interactive Accounts
+Non-interactive accounts in Windows differ from standard user accounts as they do not require login credentials. There are 3 types of non-interactive accounts: the Local System Account, Local Service Account, and the Network Service Account. Non-interactive accounts are generally used by the Windows operating system to automatically start services and applications without requiring user interaction.
+
+|Account|	Description|
+|:-:|:-:|
+|Local System Account|	Also known as the NT AUTHORITY\SYSTEM account, this is the most powerful account in Windows systems. It is used for a variety of OS-related tasks, such as starting Windows services. This account is more powerful than accounts in the local administrators group.|
+|Local Service Account|	Known as the NT AUTHORITY\LocalService account, this is a less privileged version of the SYSTEM account and has similar privileges to a local user account. It is granted limited functionality and can start some services.|
+|Network Service Account|	This is known as the NT AUTHORITY\NetworkService account and is similar to a standard domain user account. It has similar privileges to the Local Service Account on the local machine. It can establish authenticated sessions for certain network services.|
+
+## PowerShell
+
+Windows PowerShell is a command shell that was designed by Microsoft to be more geared towards system administrators. PowerShell is built on top of the .NET Framework, which is used for building and running applications on Windows. PowerShell utilizes cmdlets, which are small single-function tools built into the shell. There are more than 100 core cmdlets, and many additional ones have been written, or we can author our own to perform more complex tasks. PowerShell also supports both simple and complex scripts used for system administration tasks, automation, and more. Cmdlets are in the form of Verb-Noun. For example, the command Get-ChildItem can be used to list the current directory. 
+
+Many cmdlets in PowerShell also have aliases. For example, the aliases for the cmdlet Set-Location, to change directories, is either cd or sl. Meanwhile, the aliases for Get-ChildItem are ls and gci. We can view all available aliases by typing Get-Alias.
+
+Sometimes we will find that we are unable to run scripts on a system. This is due to a security feature called the execution policy, which attempts to prevent the execution of malicious scripts. The possible policies are:
+
+|Policy|	Description|
+|:-:|:-:|
+|AllSigned|	All scripts can run, but a trusted publisher must sign scripts and configuration files. This includes both remote and local scripts. We receive a prompt before running scripts signed by publishers that we have not yet listed as either trusted or untrusted.|
+|Bypass|	No scripts or configuration files are blocked, and the user receives no warnings or prompts.|
+|Default|	This sets the default execution policy, Restricted for Windows desktop machines and RemoteSigned for Windows servers.|
+|RemoteSigned|	Scripts can run but requires a digital signature on scripts that are downloaded from the internet. Digital signatures are not required for scripts that are written locally.|
+|Restricted|	This allows individual commands but does not allow scripts to be run. All script file types, including configuration files (.ps1xml), module script files (.psm1), and PowerShell profiles (.ps1) are blocked.|
+|Undefined|	No execution policy is set for the current scope. If the execution policy for ALL scopes is set to undefined, then the default execution policy of Restricted will be used.|
+|Unrestricted|	This is the default execution policy for non-Windows computers, and it cannot be changed. This policy allows for unsigned scripts to be run but warns the user before running scripts that are not from the local intranet zone.|
+
+The execution policy is not meant to be a security control that restricts user actions. A user can easily bypass the policy by either typing the script contents directly into the PowerShell window, downloading and invoking the script, or specifying the script as an encoded command.
