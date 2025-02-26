@@ -190,3 +190,28 @@ Sometimes we will find that we are unable to run scripts on a system. This is du
 |Unrestricted|	This is the default execution policy for non-Windows computers, and it cannot be changed. This policy allows for unsigned scripts to be run but warns the user before running scripts that are not from the local intranet zone.|
 
 The execution policy is not meant to be a security control that restricts user actions. A user can easily bypass the policy by either typing the script contents directly into the PowerShell window, downloading and invoking the script, or specifying the script as an encoded command.
+
+### Windows Management Instrumentation (WMI)
+
+WMI is a subsystem of PowerShell that provides system administrators with powerful tools for system monitoring.
+Some of the uses for WMI are:
+
+- Status information for local/remote systems
+- Configuring security settings on remote machines/applications
+- Setting and changing user and group permissions
+- Setting/modifying system properties
+- Code execution
+- Scheduling processes
+- Setting up logging
+
+These tasks can all be performed using a combination of PowerShell and the WMI Command-Line Interface (WMIC). WMI can be run via the Windows command prompt by typing WMIC to open an interactive shell or by running a command directly such as wmic computersystem get name to get the hostname. We can view a listing of WMIC commands and aliases by typing WMIC /?. WMI can also be used with PowerShell by using the Get-WmiObject module. This module is used to get instances of WMI classes or information about available classes. This module can be used against local or remote machines.
+
+## Microsoft Management Console (MMC)
+The MMC can be used to group snap-ins, or administrative tools, to manage hardware, software, and network components within a Windows host. We can also use MMC to create custom tools and distribute them to users. MMC works with the concept of snap-ins, allowing administrators to create a customized console with only the administrative tools needed to manage several services. These snap-ins can be added to manage both local and remote systems.
+
+## Windows Subsystem for Linux (WSL)
+WSL is a feature that allows Linux binaries to be run natively on Windows and Windows Server 2019 onwards. It was originally intended for developers who needed to run Bash, Ruby, and native Linux command-line tools, directly on their Windows workstation. The second version of WSL, released in May 2019, introduced a real Linux kernel utilizing a subset of Hyper-V features.
+
+WSL can be installed by running the PowerShell command Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Windows-Subsystem-Linux as an Administrator. Once this feature is enabled, we can either download a Linux distro from the Microsoft Store and install it or manually download the Linux distro of our choice and unpack and install it from the command line.
+
+WSL installs an application called Bash.exe, which can be run by merely typing bash into a Windows console to spawn a Bash shell. We have the full look and feel of a Linux host from this shell, including the standard Linux directory structure. We can access the C$ volume and other volumes on the host operating system via the mnt directory.
