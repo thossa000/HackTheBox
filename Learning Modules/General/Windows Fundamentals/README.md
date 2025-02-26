@@ -215,3 +215,35 @@ WSL is a feature that allows Linux binaries to be run natively on Windows and Wi
 WSL can be installed by running the PowerShell command Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Windows-Subsystem-Linux as an Administrator. Once this feature is enabled, we can either download a Linux distro from the Microsoft Store and install it or manually download the Linux distro of our choice and unpack and install it from the command line.
 
 WSL installs an application called Bash.exe, which can be run by merely typing bash into a Windows console to spawn a Bash shell. We have the full look and feel of a Linux host from this shell, including the standard Linux directory structure. We can access the C$ volume and other volumes on the host operating system via the mnt directory.
+
+## Windows Security
+### Security Identifier (SID)
+SIDs are string values with different lengths, which are stored in the security database. These SIDs are added to the user's access token to identify all actions that the user is authorized to take. A SID consists of the Identifier Authority and the Relative ID (RID). In an Active Directory (AD) domain environment, the SID also includes the domain SID.
+
+### Security Accounts Manager (SAM) and Access Control Entries (ACE)
+SAM grants rights to a network to execute specific processes. The access rights themselves are managed by Access Control Entries (ACE) in Access Control Lists (ACL). The ACLs contain ACEs that define which users, groups, or processes have access to a file or to execute a process. The permissions to access a securable object are given by the security descriptor, classified into two types of ACLs: the Discretionary Access Control List (DACL) or System Access Control List (SACL). Every thread and process started or initiated by a user goes through an authorization process. 
+
+### User Account Control (UAC)
+User Account Control (UAC) is a security feature in Windows to prevent malware from running or manipulating processes that could damage the computer or its contents. There is the Admin Approval Mode in UAC, which is designed to prevent unwanted software from being installed without the administrator's knowledge or to prevent system-wide changes from being made.
+
+### Registry
+The Registry is a hierarchical database in Windows critical for the operating system. It stores low-level settings for the Windows operating system and applications that choose to use it. It is divided into computer-specific and user-specific data. We can open the Registry Editor by typing regedit from the command line or Windows search bar. The tree-structure consists of main folders (root keys) in which subfolders (subkeys) with their entries/files (values) are located. The root keys all start with HKEY. A key such as HKEY-LOCAL-MACHINE is abbreviated to HKLM. HKLM contains all settings that are relevant to the local system.
+
+The entire system registry is stored in several files on the operating system. You can find these under C:\Windows\System32\Config\.
+
+The user-specific registry hive (HKCU) is stored in the user folder (i.e., C:\Users\<USERNAME>\Ntuser.dat).
+
+### Application Whitelisting
+An application whitelist is a list of approved software applications or executables allowed to be present and run on a system. The goal is to protect the environment from harmful malware and unapproved software that does not align with the specific business needs of an organization. An organization should implement a whitelist in audit mode initially to make sure that all necessary applications are whitelisted and not blocked by an error of omission. AppLocker is Microsoft's application whitelisting solution and was first introduced in Windows 7. AppLocker gives system administrators control over which applications and files users can run. It gives granular control over executables, scripts, Windows installer files, DLLs, packaged apps, and packed app installers.
+
+Blacklisting specifies a list of harmful or disallowed software/applications to block, and all others are allowed to run/be installed. Whitelisting is based on a "zero trust" principle in which all software/applications are deemed "bad" except for those specifically allowed.
+
+Whitelisting is recommended by organizations such as NIST.
+
+### Local Group Policy
+In a domain environment, group policies are pushed down from a Domain Controller onto all domain-joined machines that Group Policy objects (GPOs) are linked to. These settings can also be defined on individual machines using Local Group Policy. Local Group Policy can be used to tweak certain graphical and network settings that are otherwise not accessible via the Control Panel. It can also be used to lock down an individual computer policy with security settings, such as only allowing certain programs to be installed/run or enforcing strict user account password requirements.
+
+### Windows Defender Antivirus
+Windows Defender is a built-in antivirus that ships for free with Windows operating systems. We can use the PowerShell cmdlet Get-MpComputerStatus to check which protection settings are enabled. While no antivirus solution is perfect, Windows Defender does very well in monthly detection rate tests compared to other solutions, even paid ones. Since it comes preinstalled as part of the operating system, it does not introduce "bloat" to the system, such as other programs that add browser extensions and trackers. 
+
+  
