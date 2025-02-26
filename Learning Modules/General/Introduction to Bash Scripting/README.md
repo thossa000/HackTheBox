@@ -84,3 +84,56 @@ echo ${domains[0]}
 ```
 
 ## Comparison Operators
+Comparison operators are used to determine how the defined values will be compared. Operators are differentiated between:
+
+- string operators
+- integer operators
+- file operators
+- boolean operators
+
+### String Operators
+|Operator|Description|
+|:-:|:-:|
+|==|	is equal to|
+|!=|	is not equal to|
+|<|	is less than in ASCII alphabetical order|
+|>|	is greater than in ASCII alphabetical order|
+|-z|	if the string is empty (null)|
+|-n|	if the string is not null|
+
+String comparison operators "< / >" works only within the double square brackets [[ <condition> ]]. 
+
+Variables must also be put in quotes (" "). This tells Bash that the content of the variable should be handled as a string. Otherwise, we would get an error.
+
+### Integer Operators
+|Operator|Description|
+|:-:|:-:|
+|-eq|	is equal to|
+|-ne|	is not equal to|
+|-lt|	is less than|
+|-le|	is less than or equal to|
+|-gt|	is greater than|
+|-ge|	is greater than or equal to|
+
+### File Operators
+The file operators are useful if we want to find out specific permissions or if they exist.
+|Operator|Description|
+|:-:|:-:|
+|-e|	if the file exist|
+|-f|	tests if it is a file|
+|-d|	tests if it is a directory|
+|-L|	tests if it is if a symbolic link|
+|-N|	checks if the file was modified after it was last read|
+|-O|	if the current user owns the file|
+|-G|	if the file’s group id matches the current user’s|
+|-s|	tests if the file has a size greater than 0|
+|-r|	tests if the file has read permission|
+|-w|	tests if the file has write permission|
+|-x|	tests if the file has execute permission|
+
+### Logical Operators
+|Operator|Description|
+|:-:|:-:|
+|!|	logical negotation NOT|
+|&&|	logical AND|
+|\|\||	logical OR|
