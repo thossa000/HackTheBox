@@ -137,3 +137,115 @@ The file operators are useful if we want to find out specific permissions or if 
 |!|	logical negotation NOT|
 |&&|	logical AND|
 |\|\||	logical OR|
+
+To request user input during a script the Read command can be used. 
+
+```
+read -p "Select your option: " opt
+```
+The -p option ensures the user input is on the same line as the prompt.
+
+The tee utility can be used to provide outputs as the script is processing, instead of only showing after the script portion is complete:
+```
+whois $ip | grep "NetRange\|CIDR" | tee -a CIDR.txt
+```
+In this example tee -a will append the outputs from whois $ip to the CIDR.txt file while also displaying to the user's screen.
+
+## Flow Control - Loops
+Each control structure is either a branch or a loop. Logical expressions of boolean values usually control the execution of a control structure. Loop control structures include:
+
+Loops:
+
+- For Loops - executed on each pass for precisely one parameter.
+- While Loops - A statement is executed as long as a condition is fulfilled (true). The while loops also work with conditions like if-else.
+- Until Loops - The code inside a until loop is executed as long as the particular condition is false. The other way is to let the loop run until the desired value is reached.
+
+## Flow Control - Branches
+Branches:
+
+- If-Else Conditions
+- Case Statements
+
+Case statements are also known as switch-case statements in other languages, such as C/C++ and C#. The main difference between if-else and switch-case is that if-else constructs allow us to check any boolean expression, while switch-case always compares only the variable with the exact value. Therefore, the same conditions as for if-else, such as "greater-than," are not allowed for switch-case. 
+```
+case <expression> in
+	pattern_1 ) statements ;;
+	pattern_2 ) statements ;;
+	pattern_3 ) statements ;;
+esac
+```
+
+## Functions
+If we use the same routines several times in the script, the script's size will increase accordingly. In such cases, functions are the solution that improves both the size and the clarity of the script. Functions are an essential part of scripts and programs, as they are used to execute recurring commands for different values and phases of the script or program. Therefore, we do not have to repeat the whole section of code repeatedly but can create a single function that executes the specific commands. This helps to make the code easier to read and to keep the code as short as possible.
+
+Functions must be coded at the beginning of a script since the code is read from top-down the functions must be defined before it is called.
+```
+#!/bin/bash
+
+function print_pars {
+	echo $1 $2 $3
+}
+
+one="First parameter"
+two="Second parameter"
+three="Third parameter"
+
+print_pars "$one" "$two" "$three"
+```
+
+### Return Values
+When we start a new process, each child process (for example, a function in the executed script) returns a return code to the parent process (bash shell through which we executed the script) at its termination, informing it of the status of the execution. This information is used to determine whether the process ran successfully or whether specific errors occurred. Based on this information, the parent process can decide on further program flow.
+
+|Return Code|	Description|
+|:-:|:-:|
+|1|	General errors|
+|2|	Misuse of shell builtins|
+|126|	Command invoked cannot execute|
+|127|	Command not found|
+|128|	Invalid argument to exit|
+|128+n|	Fatal error signal "n"|
+|130|	Script terminated by Control-C|
+|255\*|	Exit status out of range|
+
+To get the value of a function back, we can use several methods like return, echo, or a variable.
+
+## Debugging
+Bash allows us to debug our code by using the "-x" (xtrace) and "-v" (verbose) options. 
+```
+thossa00@htb[/htb]$ bash -x -v CIDR.sh
+
+#!/bin/bash
+
+# Check for given argument
+if [ $# -eq 0 ]
+then
+	echo -e "You need to specify the target domain.\n"
+	echo -e "Usage:"
+	echo -e "\t$0 <domain>"
+	exit 1
+else
+	domain=$1
+fi
++ '[' 0 -eq 0 ']'
++ echo -e 'You need to specify the target domain.\n'
+You need to specify the target domain.
+
++ echo -e Usage:
+Usage:
++ echo -e '\tCIDR.sh <domain>'
+	CIDR.sh <domain>
++ exit 1
+```
+
+Bash shows us precisely which function or command was executed with which values. This is indicated by the plus sign (+) at the beginning of the line. Using only the "-x" option will show precisely which function or command was executed with which values instead of the whole script. 
+```
++ '[' 0 -eq 0 ']'
++ echo -e 'You need to specify the target domain.\n'
+You need to specify the target domain.
+
++ echo -e Usage:
+Usage:
++ echo -e '\tCIDR.sh <domain>'
+	CIDR.sh <domain>
++ exit 1
+```
