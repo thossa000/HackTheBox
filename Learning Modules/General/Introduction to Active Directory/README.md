@@ -77,3 +77,20 @@ INLANEFREIGHT.LOCAL/
 |MSBROWSE| A Microsoft networking protocol that was used in early versions of Windows-based local area networks (LANs) to provide browsing services. It was used to maintain a list of resources, such as shared printers and files, that were available on the network, and to allow users to easily browse and access these resources. Today, MSBROWSE is largely obsolete.
 |sIDHistory| This attribute holds any SIDs that an object was assigned previously. It is usually used in migrations so a user can maintain the same level of access when migrated from one domain to another.
 |NTDS.DIT| The NTDS.DIT file can be considered the heart of Active Directory. It is stored on a Domain Controller at C:\Windows\NTDS\ and is a database that stores AD data such as information about user and group objects, group membership, and, most important to attackers and penetration testers, the password hashes for all users in the domain.
+
+## Active Directory Objects
+|Object|Traits|
+|:-:|:-:|
+|Users| Users are considered leaf objects, which means that they cannot contain any other objects within them. Another example of a leaf object is a mailbox in Microsoft Exchange.
+|Contacts| Leaf objects. Usually used to represent an external user and contains informational attributes such as first name, last name, email address, and telephone number. NOT security principals (securable objects), so they don't have a SID, only a GUID.
+|Printers| A leaf object and not a security principal, so it only has a GUID. Printers have attributes such as the printer's name, driver information, port number, etc.
+|Computers| Leaf objects because they do not contain other objects. However, they are considered security principals and have a SID and a GUID. Like users, they are prime targets for attackers.
+|Shared Folders| A shared folder object points to a shared folder on the specific computer where the folder resides. Shared folders can have stringent access control applied to them. NOT security principals and only have a GUID.
+|Groups| A container object because it can contain other objects, including users, computers, and even other groups. A group IS regarded as a security principal and has a SID and a GUID. In AD, groups are a way to manage user permissions and access to other securable objects (both users and computers).
+|Organizational Units (OUs)| A container that systems administrators can use to store similar objects for ease of administration. OUs are often used for administrative delegation of tasks without granting a user account full administrative rights. OUs are very useful for managing Group Policy.
+|Domain| A domain is the structure of an AD network. Domains contain objects such as users and computers, which are organized into container objects: groups and OUs. 
+|Domain Controllers| They handle authentication requests, verify users on the network, and control who can access the various resources in the domain. All access requests are validated via the domain controller and privileged access requests are based on predetermined roles assigned to users.
+|Sites| A site in AD is a set of computers across one or more subnets connected using high-speed links. They are used to make replication across domain controllers run efficiently.
+|Built-in| In AD, built-in is a container that holds default groups in an AD domain. They are predefined when an AD domain is created.
+|Foreign Security Principals| an object created in AD to represent a security principal that belongs to a trusted external forest. They are created when an object such as a user, group, or computer from an external forest is added to a group in the current domain.
+
