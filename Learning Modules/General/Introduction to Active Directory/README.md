@@ -202,3 +202,98 @@ One account to keep in mind is the KRBTGT account. This is a type of local accou
 |SAMAccountName|	This is a logon name that supports the previous version of Windows clients and servers.
 |objectSID	|The user's Security Identifier (SID). This attribute identifies a user and its group memberships during security interactions with the server.
 |sIDHistory|	This contains previous SIDs for the user object if moved from another domain and is typically seen in migration scenarios from domain to domain. After a migration occurs, the last SID will be added to the sIDHistory property, and the new SID will become its objectSID.
+
+## Active Directory Groups
+Groups are another key target for attackers and penetration testers, as the rights that they confer on their members may not be readily apparent but may grant excessive access. There are many built-in groups in Active Directory, and most organizations also create their own groups to define rights and privileges, further managing access within the domain. Groups are primarily used to assign permissions to access resources. OUs can also be used to delegate administrative tasks to a user, such as resetting passwords or unlocking user accounts without giving them additional admin rights that they may inherit through group membership.
+
+### Group Types
+Groups in Active Directory have two fundamental characteristics: type and scope. The group type defines the group's purpose, while the group scope shows how the group can be used within the domain or forest. When creating a new group, we must select a group type. There are two main types: security and distribution groups.
+
+The Security groups type is primarily for ease of assigning permissions and rights to a collection of users instead of one at a time.
+
+The Distribution groups type is used by email applications such as Microsoft Exchange to distribute messages to group members. This type of group cannot be used to assign permissions to resources in a domain environment.
+
+### Group Scopes
+There are three different group scopes that can be assigned when creating a new group.
+
+1. Domain Local Group
+2. Global Group
+3. Universal Group
+
+![image](https://github.com/user-attachments/assets/c84dc14a-1723-43b3-ac8f-1aa6049de774)
+
+#### Domain Local Group
+Domain local groups can only be used to manage permissions to domain resources in the domain where it was created. Local groups cannot be used in other domains but CAN contain users from OTHER domains. Local groups can be nested into (contained within) other local groups but NOT within global groups.
+
+#### Global Group
+Global groups can be used to grant access to resources in another domain. A global group can only contain accounts from the domain where it was created. Global groups can be added to both other global groups and local groups.
+
+#### Universal Group
+The universal group scope can be used to manage resources distributed across multiple domains and can be given permissions to any object within the same forest. They are available to all domains within an organization and can contain users from any domain. Unlike domain local and global groups, universal groups are stored in the Global Catalog (GC), and adding or removing objects from a universal group triggers forest-wide replication. It is recommended that administrators maintain other groups (such as global groups) as members of universal groups because global group membership within universal groups is less likely to change than individual user membership in global groups. Replication is only triggered at the individual domain level when a user is removed from a global group.
+
+### Nested Group Membership
+Tools like BloodHound are  useful in uncovering privileges that a user may inherit through one or more nestings of groups. This is a key tool for penetration testers for uncovering misconfigurations and is also extremely powerful for sysadmins and the like to gain deep insights into the security posture of their domain(s).
+
+### Group Attributes
+cn: The cn or Common-Name is the name of the group in Active Directory Domain Services.
+
+member: Which user, group, and contact objects are members of the group.
+
+groupType: An integer that specifies the group type and scope.
+
+memberOf: A listing of any groups that contain the group as a member (nested group membership).
+
+objectSid: This is the security identifier or SID of the group, which is the unique value used to identify the group as a security principal.
+
+#### User Privileges
+After logging into a host, typing the command whoami /priv will give us a listing of all user rights assigned to the current user. 
+
+## General Active Directory Hardening
+### LAPS
+The Microsoft Local Administrator Password Solution (LAPS) is used to randomize and rotate local administrator passwords on Windows hosts and prevent lateral movement.
+
+### Audit Policy Settings (Logging and Monitoring)
+Effective logging and monitoring can be used to detect an attacker or unauthorized employee adding a user or computer, modifying an object in AD, changing an account password, accessing a system in an unauthorized or non-standard manner, performing an attack such as password spraying, or more advanced attacks such as modern Kerberos attacks.
+
+### Group Policy Security Settings
+Group Policy Objects (GPOs) are virtual collections of policy settings that can be applied to specific users, groups, and computers at the OU level. These can be used to apply a wide variety of security policies to help harden Active Directory.
+
+- Account Policies
+- Local Policies
+- Software Restriction Policies
+- Application Control Policies
+- Advanced Audit Policy Configuration
+
+### Update Management (SCCM/WSUS)
+The Windows Server Update Service (WSUS) can be installed as a role on a Windows Server and can be used to minimize the manual task of patching Windows systems. System Center Configuration Manager (SCCM) is a paid solution that relies on the WSUS Windows Server role being installed and offers more features than WSUS on its own. 
+
+### Group Managed Service Accounts (gMSA)
+An account managed by the domain that offers a higher level of security than other types of service accounts for use with non-interactive applications, services, processes, and tasks that are run automatically but require credentials to run. They provide automatic password management with a 120 character password generated by the domain controller. The password is changed at a regular interval and does not need to be known by any user. It allows for credentials to be used across multiple hosts.
+
+### Security Groups
+Active Directory automatically creates some default security groups during installation. Some examples are Account Operators, Administrators, Backup Operators, Domain Admins, and Domain Users. These groups can also be used to assign permission to access resources (i.e., a file share, folder, printer, or a document). Security groups help ensure you can assign granular permissions to users instead of individually managing each user.
+
+### Account Separation
+Administrators must have two separate accounts. One for their day-to-day work and a second for any administrative tasks they must perform.
+
+### Password Complexity Policies + MFA
+The minimum password length for standard users should be at least 12 characters and ideally longer for administrators/service accounts. Another important security measure is the implementation of multi-factor authentication (MFA) for Remote Desktop Access to any host. This can help to limit lateral movement attempts that may rely on GUI access to a host.
+
+### Limiting Domain Admin Account Usage
+All-powerful Domain Admin accounts should only be used to log in to Domain Controllers, not personal workstations, jump hosts, web servers, etc. This can significantly reduce the impact of an attack and cut down potential attack paths should a host be compromised. This would ensure that Domain Admin account passwords are not left in memory on hosts throughout the environment.
+
+### Auditing Permissions and Access
+Organizations should  periodically perform access control audits to ensure that users only have the level of access required for their day-to-day work. It is important to audit local admin rights, the number of Domain Admins, and Enterprise Admins to limit the attack surface, file share access, user rights (i.e., membership in certain privileged security groups), and more. Usage of these high privilege accounts should also be audited to ensure no breaches to policy and standard procedures.
+
+### Audit Policies & Logging
+Visibility into the domain is a must. An organization can achieve this through robust logging and then using rules to detect anomalous activity. These can also be used to detect Active Directory enumeration.
+
+### Using Restricted Groups
+Restricted Groups allow for administrators to configure group membership via Group Policy. They can be used for a number of reasons, such as controlling membership in the local administrator's group on all hosts in the domain by restricting it to just the local Administrator account and Domain Admins and controlling membership in the highly privileged Enterprise Admins and Schema Admins groups and other key administrative groups.
+
+### Limiting Server Roles
+It is important not to install additional roles on sensitive hosts, such as installing the Internet Information Server (IIS) role on a Domain Controller. This would increase the attack surface of the Domain Controller, and this type of role should be installed on a separate standalone web server. This type of role separation can help to reduce the impact of a successful attack.
+
+### Limiting Local Admin and RDP Rights
+Organizations should tightly control which users have local admin rights on which computers. The same goes for Remote Desktop (RDP) rights. If many users can RDP to one or many machines, this increases the risk of sensitive data exposure or potential privilege escalation attacks, leading to further compromise.
+
