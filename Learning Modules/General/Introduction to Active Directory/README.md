@@ -115,7 +115,90 @@ A trust is used to establish forest-forest or domain-domain authentication, allo
 |Tree-root	|a two-way transitive trust between a forest root domain and a new tree root domain. They are created by design when you set up a new tree root domain within a forest.
 |Forest	|a transitive trust between two forest root domains.
 
+## Kerberos, DNS, LDAP, MSRPC
+### Kerberos
+Kerberos has been the default authentication protocol for domain accounts since Windows 2000. Kerberos is an open standard and allows for interoperability with other systems using the same standard. When a user logs into their PC, Kerberos is used to authenticate them via mutual authentication, or both the user and the server verify their identity.
 Trusts can be transitive or non-transitive.
 
 - A transitive trust means that trust is extended to objects that the child domain trusts.
 - In a non-transitive trust, only the child domain itself is trusted.
+
+### Kerberos Authentication Process
+
+1. When a user logs in, their password is used to encrypt a timestamp, which is sent to the Key Distribution Center (KDC) to verify the integrity of the authentication by decrypting it. The KDC then issues a Ticket-Granting Ticket (TGT), encrypting it with the secret key of the krbtgt account. This TGT is used to request service tickets for accessing network resources, allowing authentication without repeatedly transmitting the user's credentials. This process decouples the user's credentials from requests to resources.
+2. The KDC service on the DC checks the authentication service request (AS-REQ), verifies the user information, and creates a Ticket Granting Ticket (TGT), which is delivered to the user.
+3. The user presents the TGT to the DC, requesting a Ticket Granting Service (TGS) ticket for a specific service. This is the TGS-REQ. If the TGT is successfully validated, its data is copied to create a TGS ticket.
+4. The TGS is encrypted with the NTLM password hash of the service or computer account in whose context the service instance is running and is delivered to the user in the TGS_REP.
+5. The user presents the TGS to the service, and if it is valid, the user is permitted to connect to the resource (AP_REQ)
+
+The Kerberos protocol uses port 88 (both TCP and UDP). When enumerating an Active Directory environment, we can often locate Domain Controllers by performing port scans looking for open port 88 using a tool such as Nmap.
+
+### DNS 
+DNS is used to resolve hostnames to IP addresses and is broadly used across internal networks and the internet. Private internal networks use Active Directory DNS namespaces to facilitate communications between servers, clients, and peers. AD maintains a database of services running on the network in the form of service records (SRV). These service records allow clients in an AD environment to locate services that they need, such as a file server, printer, or Domain Controller.
+
+### LDAP
+LDAP is an open-source and cross-platform protocol used for authentication against various directory services (such as AD). LDAP uses port 389, and LDAP over SSL (LDAPS) communicates over port 636. LDAP is the language that applications use to communicate with other servers that provide directory services. In other words, LDAP is how systems in the network environment can "speak" to AD.
+
+An LDAP session begins by first connecting to an LDAP server, also known as a Directory System Agent. The Domain Controller in AD actively listens for LDAP requests, such as security authentication requests.
+
+### AD LDAP Authentication
+LDAP is set up to authenticate credentials against AD using a "BIND" operation to set the authentication state for an LDAP session. There are two types of LDAP authentication.
+
+1. Simple Authentication: This includes anonymous authentication, unauthenticated authentication, and username/password authentication. Simple authentication means that a username and password create a BIND request to authenticate to the LDAP server.
+
+2. SASL Authentication: The Simple Authentication and Security Layer (SASL) framework uses other authentication services, such as Kerberos, to bind to the LDAP server and then uses this authentication service (Kerberos in this example) to authenticate to LDAP. The LDAP server uses the LDAP protocol to send an LDAP message to the authorization service, which initiates a series of challenge/response messages resulting in either successful or unsuccessful authentication. SASL can provide additional security due to the separation of authentication methods from application protocols.
+
+### MSRPC
+Windows systems use MSRPC (MS Remote Procedure Call) to access systems in Active Directory using four key RPC interfaces.
+
+|Interface Name|	Description|
+|:-:|:-:|
+|lsarpc|	A set of RPC calls to the Local Security Authority (LSA) system which manages the local security policy on a computer, controls the audit policy, and provides interactive authentication services. LSARPC is used to perform management on domain security policies.
+|netlogon|	Netlogon is a Windows process used to authenticate users and other services in the domain environment. It is a service that continuously runs in the background.
+|samr|	Remote SAM (samr) provides management functionality for the domain account database, storing information about users and groups. IT administrators use the protocol to manage users, groups, and computers by enabling admins to create, read, update, and delete information about security principles. Attackers (and pentesters) can use the samr protocol to perform reconnaissance about the internal domain using tools such as BloodHound to visually map out the AD network and create "attack paths" to illustrate visually how administrative access or full domain compromise could be achieved. Organizations can protect against this type of reconnaissance by changing a Windows registry key to only allow administrators to perform remote SAM queries since, by default, all authenticated domain users can make these queries to gather a considerable amount of information about the AD domain.
+|drsuapi|	drsuapi is the Microsoft API that implements the Directory Replication Service (DRS) Remote Protocol which is used to perform replication-related tasks across Domain Controllers in a multi-DC environment. Attackers can utilize drsuapi to create a copy of the Active Directory domain database (NTDS.dit) file to retrieve password hashes for all accounts in the domain, which can then be used to perform Pass-the-Hash attacks to access more systems or cracked offline using a tool such as Hashcat to obtain the cleartext password to log in to systems using remote management protocols such as Remote Desktop (RDP) and WinRM.
+
+## NTLM Authentication
+
+|Hash/Protocol|	Cryptographic technique|	Mutual Authentication|	Message Type|	Trusted Third Party|
+|:-:|:-:|:-:|:-:|:-:|
+|NTLM|	Symmetric key cryptography|	No|	Random number|	Domain Controller
+|NTLMv1|	Symmetric key cryptography|	No|	MD4 hash, random number|	Domain Controller
+|NTLMv2|	Symmetric key cryptography|	No|	MD4 hash, random number|	Domain Controller
+|Kerberos|	Symmetric key cryptography & asymmetric cryptography|	Yes|	Encrypted ticket using DES, MD5	Domain| Controller/Key Distribution Center (KDC)
+
+NT LAN Manager (NTLM) hashes are used on modern Windows systems. It is a challenge-response authentication protocol and uses three messages to authenticate: a client first sends a NEGOTIATE_MESSAGE to the server, whose response is a CHALLENGE_MESSAGE to verify the client's identity. Lastly, the client responds with an AUTHENTICATE_MESSAGE. These hashes are stored locally in the SAM database or the NTDS.DIT database file on a Domain Controller. The protocol has two hashed password values to choose from to perform authentication: the LM hash and the NT hash, which is the MD4 hash of the little-endian UTF-16 value of the password. GPU attacks have shown that the entire NTLM 8 character keyspace can be brute-forced in under 3 hours. Longer NTLM hashes can be more challenging to crack depending on the password chosen, and even long passwords (15+ characters) can be cracked using an offline dictionary attack combined with rules. NTLM is also vulnerable to the pass-the-hash attack.
+
+### NTLMv2 (Net-NTLMv2)
+The NTLMv2 protocol was first introduced in Windows NT 4.0 SP4 and was created as a stronger alternative to NTLMv1. It has been the default in Windows since Server 2000. It is hardened against certain spoofing attacks that NTLMv1 is susceptible to. NTLMv2 sends two responses to the 8-byte challenge received by the server. These responses contain a 16-byte HMAC-MD5 hash of the challenge, a randomly generated challenge from the client, and an HMAC-MD5 hash of the user's credentials. A second response is sent, using a variable-length client challenge including the current time, an 8-byte random value, and the domain name.
+
+### Domain Cached Credentials (MSCache2)
+Microsoft developed the MS Cache v1 and v2 algorithm (also known as Domain Cached Credentials (DCC) to solve the potential issue of a domain-joined host being unable to communicate with a domain controller (i.e., due to a network outage or other technical issue) and, hence, NTLM/Kerberos authentication not working to access the host in question. Hosts save the last ten hashes for any domain users that successfully log into the machine in the HKEY_LOCAL_MACHINE\SECURITY\Cache registry key. These hashes cannot be used in pass-the-hash attacks. Furthermore, the hash is very slow to crack with a tool such as Hashcat.
+
+## User and Machine Accounts
+User accounts are created on both local systems (not joined to AD) and in Active Directory to give a person or a program (such as a system service) the ability to log on to a computer and access resources based on their rights. When a user logs in, the system verifies their password and creates an access token. This token describes the security content of a process or thread and includes the user's security identity and group membership.
+
+It can be easier for an administrator to assign privileges once to a group (which all group members inherit) instead of many times to each individual user. Some companies must retain records of these accounts for audit purposes, so they will deactivate them (and hopefully remove all privileges) once the employee is terminated, but they will not delete them. It is common to see an OU such as FORMER EMPLOYEES that will contain many deactivated accounts.
+
+### Local Accounts
+
+- Administrator: this account has the SID S-1-5-domain-500 and is the first account created with a new Windows installation.
+- Guest: this account is disabled by default. The purpose of this account is to allow users without an account on the computer to log in temporarily with limited access rights.
+- SYSTEM: The SYSTEM (or NT AUTHORITY\SYSTEM) account on a Windows host is the default account installed and used by the operating system to perform many of its internal functions.
+- Network Service: This is a predefined local account used by the Service Control Manager (SCM) for running Windows services.
+- Local Service: This is another predefined local account used by the Service Control Manager (SCM) for running Windows services.
+
+### Domain Users
+Domain users differ from local users in that they are granted rights from the domain to access resources such as file servers, printers, intranet hosts, and other objects based on the permissions granted to their user account or the group that account is a member of. Domain user accounts can log in to any host in the domain, unlike local users.
+
+One account to keep in mind is the KRBTGT account. This is a type of local account built into the AD infrastructure. This account acts as a service account for the Key Distribution service providing authentication and access for domain resources. This account is a common target of many attackers since gaining control or access will enable an attacker to have unconstrained access to the domain.
+
+### User Naming Attributes
+
+|Attribute| Description|
+|:-:|:-:|
+|UserPrincipalName (UPN)|	This is the primary logon name for the user. By convention, the UPN uses the email address of the user.
+|ObjectGUID|	This is a unique identifier of the user. In AD, the ObjectGUID attribute name never changes and remains unique even if the user is removed.
+|SAMAccountName|	This is a logon name that supports the previous version of Windows clients and servers.
+|objectSID	|The user's Security Identifier (SID). This attribute identifies a user and its group memberships during security interactions with the server.
+|sIDHistory|	This contains previous SIDs for the user object if moved from another domain and is typically seen in migration scenarios from domain to domain. After a migration occurs, the last SID will be added to the sIDHistory property, and the new SID will become its objectSID.
