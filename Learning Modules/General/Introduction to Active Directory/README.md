@@ -297,3 +297,19 @@ It is important not to install additional roles on sensitive hosts, such as inst
 ### Limiting Local Admin and RDP Rights
 Organizations should tightly control which users have local admin rights on which computers. The same goes for Remote Desktop (RDP) rights. If many users can RDP to one or many machines, this increases the risk of sensitive data exposure or potential privilege escalation attacks, leading to further compromise.
 
+## Group Policy Objects (GPOs)
+A Group Policy Object (GPO) is a virtual collection of policy settings that can be applied to user(s) or computer(s). Every GPO has a unique name and is assigned a unique identifier (a GUID). They can be linked to a specific OU, domain, or site. A single GPO can be linked to multiple containers, and any container can have multiple GPOs applied to it. They can be applied to individual users, hosts, or groups by being applied directly to an OU.
+
+GPO settings are processed using the hierarchical structure of AD and are applied using the Order of Precedence rule:
+
+|Level|	Description|
+|:-:|:-:|
+|Local Group Policy|	The policies are defined directly to the host locally outside the domain. Any setting here will be overwritten if a similar setting is defined at a higher level.
+|Site Policy|	Any policies specific to the Enterprise Site that the host resides in. Remember that enterprise environments can span large campuses and even across countries. So it stands to reason that a site might have its own policies to follow that could differentiate it from the rest of the organization. Access Control policies are a great example of this. Say a specific building or site performs secret or restricted research and requires a higher level of authorization for access to resources. You could specify those settings at the site level and ensure they are linked so as not to be overwritten by domain policy. This is also a great way to perform actions like printer and share mapping for users in specific sites.
+|Domain-wide Policy|	Any settings you wish to have applied across the domain as a whole. For example, setting the password policy complexity level, configuring a Desktop background for all users, and setting a Notice of Use and Consent to Monitor banner at the login screen.
+|Organizational Unit (OU)|	These settings would affect users and computers who belong to specific OUs. You would want to place any unique settings here that are role-specific. For example, the mapping of a particular share drive that can only be accessed by HR, access to specific resources like printers, or the ability for IT admins to utilize PowerShell and command-prompt.
+|Any OU Policies nested within other OU's|	Settings at this level would reflect special permissions for objects within nested OUs. For example, providing Security Analysts a specific set of Applocker policy settings that differ from the standard IT Applocker settings.
+
+We can manage Group Policy from the Group Policy Management Console, custom applications, or using the PowerShell GroupPolicy module via command line.
+
+Windows performs periodic Group Policy updates, which by default is done every 90 minutes with a randomized offset of +/- 30 minutes for users and computers. This random offset of +/- 30 minutes is set to avoid overwhelming domain controllers by having all clients request Group Policy from the domain controller simultaneously. The period is only 5 minutes for domain controllers to update by default. When a new GPO is created and linked, it could take up to 2 hours (120 minutes) until the settings take effect. We can issue the command gpupdate /force to kick off the update process.
