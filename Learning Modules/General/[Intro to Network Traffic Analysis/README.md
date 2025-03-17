@@ -42,3 +42,33 @@ Look at specific hosts, protocols, even things as specific as flags set in the T
 
 ### 5. Fix and Monitor
 If we make a change or fix an issue, we should continue to monitor the source for a time to determine if the issue has been resolved.
+
+## TCP VS. UDP
+
+|Characteristic|	TCP|	UDP|
+|:-:|:-:|:-:|
+|Transmission|	Connection-oriented|	Connectionless. Fire and forget.
+|Connection Establishment|	TCP uses a three-way handshake to ensure that a connection is established.|	UDP does not ensure the destination is listening.
+|Data Delivery|	Stream-based conversations|	packet by packet, the source does not care if the destination is active
+|Receipt of data|	Sequence and Acknowledgement numbers are utilized to account for data.|	UDP does not care.
+|Speed	|TCP has more overhead and is slower because of its built-in functions.|	UDP is fast but unreliable.
+
+### TCP Three-way Handshake
+1. The client sends a packet with the SYN flag set to on along with other negotiable options in the TCP header.
+
+This is a synchronization packet. It will only be set in the first packet from host and server and enables establishing a session by allowing both ends to agree on a sequence number to start communicating with.
+This is crucial for the tracking of packets. Along with the sequence number sync, many other options are negotiated in this phase to include window size, maximum segment size, and selective acknowledgments.
+
+2. The server will respond with a TCP packet that includes a SYN flag set for the sequence number negotiation and an ACK flag set to acknowledge the previous SYN packet sent by the host.
+
+The server will also include any changes to the TCP options it requires set in the options fields of the TCP header.
+
+3. The client will respond with a TCP packet with an ACK flag set agreeing to the negotiation.
+
+This packet is the end of the three-way handshake and established the connection between client and server.
+
+When a connection concludes, TCP will use the following steps to gracefully close the connection. A flag we will see with TCP is the FIN flag. It is used for signaling that the data transfer is finished and the sender is requesting termination of the connection. The client acknowledges the receipt of the data and then sends a FIN and ACK to begin session termination. The server responds with an acknowledgment of the FIN and sends back its own FIN. Finally, the client acknowledges the session is complete and closes the connection. Before session termination, we should see a packet pattern of:
+
+1. FIN, ACK
+2. FIN, ACK,
+3. ACK
