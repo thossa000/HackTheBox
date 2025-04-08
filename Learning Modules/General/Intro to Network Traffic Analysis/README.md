@@ -8,7 +8,7 @@ his process helps security specialists determine anomalies, including security t
 - Detecting malware on the wire, such as ransomware, exploits, and non-standard interactions.
 - NTA is also useful when investigating past incidents and during threat hunting.
 
-## Common Traffic Analysis Tools
+# Common Traffic Analysis Tools
 |Tool|	Description|
 |:-:|:-:|
 |tcpdump|	tcpdump is a command-line utility that, with the aid of LibPcap, captures and interprets network traffic from a network interface or capture file.|
@@ -21,10 +21,10 @@ his process helps security specialists determine anomalies, including security t
 |Elastic Stack|	The Elastic Stack is a culmination of tools that can take data from many sources, ingest the data, and visualize it, to enable searching and analysis of it.|
 |SIEMS|	SIEMS (such as Splunk) are a central point in which data is analyzed and visualized. Alerting, forensic analysis, and day-to-day checks against the traffic are all use cases for a SIEM.|
 
-### BPF Syntax
+## BPF Syntax
 Many of the tools mentioned above have their syntax and commands to utilize, but one that is shared among them is Berkeley Packet Filter (BPF) syntax. BPF is a technology that enables a raw interface to read and write from the Data-Link layer. 
 
-## NTA Workflow
+# NTA Workflow
 ### 1. Ingest Traffic
 ### 2. Reduce Noise by Filtering
 Once we complete the initial capture, an attempt to filter out unnecessary traffic from our view can make analysis easier. (Broadcast and Multicast traffic, for example.)
@@ -43,7 +43,7 @@ Look at specific hosts, protocols, even things as specific as flags set in the T
 ### 5. Fix and Monitor
 If we make a change or fix an issue, we should continue to monitor the source for a time to determine if the issue has been resolved.
 
-## TCP VS. UDP
+# TCP VS. UDP
 
 |Characteristic|	TCP|	UDP|
 |:-:|:-:|:-:|
@@ -53,7 +53,7 @@ If we make a change or fix an issue, we should continue to monitor the source fo
 |Receipt of data|	Sequence and Acknowledgement numbers are utilized to account for data.|	UDP does not care.
 |Speed	|TCP has more overhead and is slower because of its built-in functions.|	UDP is fast but unreliable.
 
-### TCP Three-way Handshake
+## TCP Three-way Handshake
 1. The client sends a packet with the SYN flag set to on along with other negotiable options in the TCP header.
 
 This is a synchronization packet. It will only be set in the first packet from host and server and enables establishing a session by allowing both ends to agree on a sequence number to start communicating with.
@@ -73,7 +73,7 @@ When a connection concludes, TCP will use the following steps to gracefully clos
 2. FIN, ACK,
 3. ACK
 
-### TCP Handshake in HTTPS
+## TCP Handshake in HTTPS
 
 1. Client and server exchange hello messages to agree on connection parameters.
 2. Client and server exchange necessary cryptographic parameters to establish a premaster secret.
@@ -82,7 +82,7 @@ When a connection concludes, TCP will use the following steps to gracefully clos
 5. Client and server issue negotiated security parameters to the record layer portion of the TLS protocol.
 6. Client and server verify that their peer has calculated the same security parameters and that the handshake occurred without tampering by an attacker.
 
-## FTP Commands
+# FTP Commands
 
 |Command|	Description|
 |:-:|:-:|
@@ -97,12 +97,12 @@ When a connection concludes, TCP will use the following steps to gracefully clos
 |RETR|	retrieves the file from the FTP server.
 |QUIT|	ends the session.
 
-## The Analysis Process
+# The Analysis Process
 Traffic Analysis is a detailed examination of an event or process, determining its origin and impact, which can be used to trigger specific precautions and/or actions to support or prevent future occurrences. With network traffic, this means breaking down the data into understandable chunks, examining it for anything that deviates from regular network traffic, for potentially malicious traffic such as unauthorized remote communications from the internet over RDP, SSH, or Telnet, or unique instances preceding network issues. 
 
 Traffic capturing and analysis can be performed in two different ways, active or passive. With passive, we are just copying data that we can see without directly interacting with the packets. Active capture requires us to take a more hands-on approach. This process can also be referred to as in-line traffic captures. 
 
-### Traffic Capture Dependencies
+## Traffic Capture Dependencies
 |Dependencies|	Passive|	Active|	Description|
 |:-:|:-:|:-:|:-:|
 |Permission|	☑|	☑|	Depending on the organization we are working in, capturing data can be against policy or even against the law in some sensitive areas like healthcare or banking. Be sure always to obtain permission in writing from someone with the proper authority to grant it to you. We may style ourselves as hackers, but we want to stay in the light legally and ethically.
@@ -111,3 +111,66 @@ Traffic capturing and analysis can be performed in two different ways, active or
 |In-line Placement|	☐|	☑|	Placing a Tap in-line requires a topology change for the network you are working in. The source and destination hosts will not notice a difference in the traffic, but for the sake of routing and switching, it will be an invisible next hop the traffic passes through on its way to the destination.
 |Network Tap or Host With Multiple NIC's|	☐|	☑|	A computer with two NIC's, or a device such as a Network Tap is required to allow the data we are inspecting to flow still. Think of it as adding another router in the middle of a link. To actively capture the traffic, we will be duplicating data directly from the sources. The best placement for a tap is in a layer three link between switched segments. It allows for the capture of any traffic routing outside of the local network. A switched port or VLAN segmentation does not filter our view here.
 |Storage and Processing Power|	☑|	☑|	You will need plenty of storage space and processing power for traffic capture off a tap. Much more traffic is traversing a layer three link than just inside a switched LAN. Think of it like this; When we passively capture traffic inside a LAN, it's like pouring water into a cup from a water fountain. It's a steady stream but manageable. Actively grabbing traffic from a routed link is more like using a water hose to fill up a teacup. There is a lot more pressure behind the flow, and it can be a lot for the host to process and store.
+
+# Analysis in Practice 
+
+## Descriptive Analysis
+Descriptive analysis is an essential step in any data analysis. It serves to describe a data set based on individual characteristics. It helps to detect possible errors in data collection and/or outliers in the data set.
+
+1. What is the issue? - Suspected breach? Networking issue?
+2. Define our scope and the goal. (what are we looking for? which time period?)
+3. Define our target(s) (net / host(s) / protocol) - Scope: 192.168.100.0/24 network, protocols used were HTTP and FTP.
+
+## Diagnostic Analysis
+Diagnostic analysis clarifies the causes, effects, and interactions of conditions. 
+
+4. Capture network traffic
+5. Identification of required network traffic components (filtering)
+6. An understanding of captured network traffic
+
+## Predictive Analysis
+By evaluating historical and current data, predictive analysis creates a predictive model for future probabilities. Based on the results of descriptive and diagnostic analyses, this method of data analysis makes it possible to identify trends, detect deviations from expected values at an early stage, and predict future occurrences as accurately as possible.
+
+7. Note-taking and mind mapping of the found results
+8. Summary of the analysis (what did we find?)
+
+## Prescriptive Analysis
+Prescriptive analysis aims to narrow down what actions to take to eliminate or prevent a future problem or trigger a specific activity or process. Using the results of our workflow, we can make sound decisions as to what actions are required to solve the problem and prevent it from happening again. To prescribe a solution is the culmination of this workflow. Once done and the problem is solved, it is prudent to reflect on the entire process and develop lessons learned.
+
+Often this process is not a once-and-done kind of thing. It is usually cyclic, and we will need to rerun steps based on our analysis of the original capture to build a bigger picture.
+
+## Key Components of an Effective Analysis
+
+1. Know your environment
+2. Placement is Key
+3. Persistence
+
+## Analysis Approach
+Start with standard protocols first and work our way into the austere and specific only to the organization. Most attacks will come from the internet, so it has to access the internal net somehow. HTTP/S, FTP, E-mail, and basic TCP and UDP traffic will be the most common things seen coming from the world. Start at these and clear out anything that is not necessary to the investigation. 
+
+After these, check standard protocols that allow for communications between networks, such as SSH, RDP, or Telnet. When looking for these types of anomalies, be mindful of the security policy of the network. Does our organization's security plan and implementations allow for RDP sessions that are initiated outside the enterprise? What about the use of Telnet?
+
+Look for patterns. Is a specific host or set of hosts checking in with something on the internet at the same time daily? This is a typical Command and Control profile setup that can easily be spotted by looking for patterns in our traffic data. Check anything host to host within our network, typically hosts will talk to infrastructure for IP address leases, DNS requests, enterprise services and to find its route out. Look for unique events. 
+
+# TCPDump Fundamentals
+Tcpdump is a command-line packet sniffer that can directly capture and interpret data frames from a file or network interface. It was built for use on any Unix-like operating system and had a Windows twin called WinDump. To capture network traffic from "off the wire," it uses the libraries pcap and libpcap, paired with an interface in promiscuous mode to listen for data. 
+
+### Basic Capture Options
+These switches can be chained together to craft how the tool output is shown to us in STDOUT and what is saved to the capture file. This is not an exhaustive list, and there are many more we can use, but these are the most common and valuable.
+
+|Switch Command|	Result|
+|:-:|:-:|
+|D|	Will display any interfaces available to capture from.
+|i|	Selects an interface to capture from. ex. -i eth0
+|n|	Do not resolve hostnames.
+|nn|	Do not resolve hostnames or well-known ports.
+|e|	Will grab the ethernet header along with upper-layer data.
+|X|	Show Contents of packets in hex and ASCII.
+|XX|	Same as X, but will also specify ethernet headers. (like using Xe)
+|v, vv, vvv|	Increase the verbosity of output shown and saved.
+|c|	Grab a specific number of packets, then quit the program.
+|s|	Defines how much of a packet to grab.
+|S|	change relative sequence numbers in the capture display to absolute sequence numbers. (13248765839 instead of 101)
+|q|	Print less protocol information.
+|r file.pcap|	Read from a file.
+|w file.pcap|	Write into a file
