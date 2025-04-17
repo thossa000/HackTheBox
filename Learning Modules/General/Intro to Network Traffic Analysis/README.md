@@ -174,3 +174,27 @@ These switches can be chained together to craft how the tool output is shown to 
 |q|	Print less protocol information.
 |r file.pcap|	Read from a file.
 |w file.pcap|	Write into a file
+
+# Tcpdump Packet Filtering
+## Filtering and Advanced Syntax Options
+### Helpful TCPDump Filters
+|Filter|	Result|
+|:-:|:-:|
+|host|	host will filter visible traffic to show anything involving the designated host. Bi-directional
+|src / dest|	src and dest are modifiers. We can use them to designate a source or destination host or port.
+|net|	net will show us any traffic sourcing from or destined to the network designated. It uses / notation.
+proto|	will filter for a specific protocol type. (ether, TCP, UDP, and ICMP as examples)
+|port|	port is bi-directional. It will show any traffic with the specified port as the source or destination.
+|portrange|	portrange allows us to specify a range of ports. (0-1024)
+|less / greater "< >"|	less and greater can be used to look for a packet or protocol option of a specific size.
+|and / &&	| and && can be used to concatenate two different filters together. for example, src host AND port.
+|or|	or allows for a match on either of two conditions. It does not have to meet both. It can be tricky.
+|not|	not is a modifier saying anything but x. For example, not UDP.
+
+When utilizing filters, we can apply them directly to the capture or apply them when reading a capture file. By applying them to the capture, it will drop any traffic not matching the filter. When applying the filter to capture, we have read from a file, and the filter will parse the file and remove anything from our terminal output not matching the specified filter. It will not permanently change the capture file, and to change or clear the filter from our output will require we rerunning our command with a change in the syntax.
+
+Using the -S switch will display absolute sequence numbers, which can be extremely long. Typically, tcpdump displays relative sequence numbers, which are easier to track and read. However, if we look for these values in another tool or log, we will only find the packet based on absolute sequence numbers.
+
+The -v, -X, and -e switches can help you increase the amount of data captured, while the -c, -n, -s, -S, and -q switches can help reduce and modify the amount of data written and seen.
+
+-A and -l switches: A will show only the ASCII text after the packet line, instead of both ASCII and Hex. L will tell tcpdump to output packets in a different mode. L will line buffer instead of pooling and pushing in chunks. It allows us to send the output directly to another tool such as grep using a pipe |.
