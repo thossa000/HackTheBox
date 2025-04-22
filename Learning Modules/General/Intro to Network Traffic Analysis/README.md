@@ -198,3 +198,99 @@ Using the -S switch will display absolute sequence numbers, which can be extreme
 The -v, -X, and -e switches can help you increase the amount of data captured, while the -c, -n, -s, -S, and -q switches can help reduce and modify the amount of data written and seen.
 
 -A and -l switches: A will show only the ASCII text after the packet line, instead of both ASCII and Hex. L will tell tcpdump to output packets in a different mode. L will line buffer instead of pooling and pushing in chunks. It allows us to send the output directly to another tool such as grep using a pipe |.
+
+# Tips For Analysis
+Questions to ask ourselves when analyzing traffic:
+
+- what type of traffic do you see? (protocol, port, etc.)
+- Is there more than one conversation? (how many?)
+- How many unique hosts?
+- What is the timestamp of the first conversation in the pcap (tcp traffic)
+- What traffic can I filter out to clean up my view?
+- Who are the servers in the PCAP? (answering on well-known ports, 53, 80, etc.)
+- What records were requested or methods used? (GET, POST, DNS A records, etc.)
+
+# Analysis with Wireshark
+Wireshark is a free and open-source network traffic analyzer much like tcpdump but with a graphical interface.
+
+Features and Capabilities include:
+
+- Deep packet inspection for hundreds of different protocols
+- Graphical and TTY interfaces
+- Capable of running on most Operating systems
+- Ethernet, IEEE 802.11, PPP/HDLC, ATM, Bluetooth, USB, Token Ring, Frame Relay, FDDI, among others
+- Decryption capabilities for IPsec, ISAKMP, Kerberos, SNMPv3, SSL/TLS, WEP, and WPA/WPA2
+
+## TShark VS. Wireshark (Terminal vs. GUI)
+TShark is perfect for use on machines with little or no desktop environment and can easily pass the capture information it receives to another tool via the command line. Wireshark is the feature-rich GUI option for traffic capture and analysis.
+
+### Basic TShark Switches
+|Switch Command|	Result|
+|:-:|:-:|
+|D|	Will display any interfaces available to capture from and then exit out.
+|L|	Will list the Link-layer mediums you can capture from and then exit out. (ethernet as an example)
+|i|	choose an interface to capture from. (-i eth0)
+|f|	packet filter in libpcap syntax. Used during capture.
+|c|	Grab a specific number of packets, then quit the program. Defines a stop condition.
+|a|	Defines an autostop condition. Can be after a duration, specific file size, or after a certain number of packets.
+|r| (pcap-file)	Read from a file.
+|W| (pcap-file)	Write into a file using the pcapng format.
+|P|	Will print the packet summary while writing into a file (-W)
+|x|	will add Hex and ASCII output into the capture.
+|h|	See the help menu.
+
+### Wireshark GUI
+![image](https://github.com/user-attachments/assets/f49a9ba7-81aa-4634-bc08-408431aabe87)
+#### 1. Packet List: Orange
+
+In this window, we see a summary line of each packet that includes the fields listed below by default. We can add or remove columns to change what information is presented.
+- Number- Order the packet arrived in Wireshark
+- Time- Unix time format
+- Source- Source IP
+- Destination- Destination IP
+- Protocol- The protocol used (TCP, UDP, DNS, ETC.)
+- Information- Information about the packet. This field can vary based on the type of protocol used within. It will show, for example, what type of query It is for a DNS packet.
+
+#### 2. Packet Details: Blue
+
+- The Packet Details window allows us to drill down into the packet to inspect the protocols with greater detail. It will break it down into chunks that we would expect following the typical OSI Model reference. The packet is dissected into different encapsulation layers for inspection.
+- Wireshark will show this encapsulation in reverse order with lower layer encapsulation at the top of the window and higher levels at the bottom.
+
+#### 3. Packet Bytes: Green
+
+- The Packet Bytes window allows us to look at the packet contents in ASCII or hex output. As we select a field from the windows above, it will be highlighted in the Packet Bytes window and show us where that bit or byte falls within the overall packet.
+- This is a great way to validate that what we see in the Details pane is accurate and the interpretation Wireshark made matches the packet output.
+- Each line in the output contains the data offset, sixteen hexadecimal bytes, and sixteen ASCII bytes. Non-printable bytes are replaced with a period in the ASCII format.
+
+### Pre-capture and Post-capture Processing and Filtering
+We have several options regarding how and when we filter out traffic. This is accomplished utilizing Capture and Display filters. 
+
+### Capture Filters
+Capture Filters are entered before the capture is started. hese use BPF syntax like host 214.15.2.30 much the same as TCPDump. A capture filter will drop all other traffic not explicitly meeting the criteria set.
+
+Useful Capture Filters:
+|Capture Filters|	Result|
+|:-:|:-:|
+|host x.x.x.x|	Capture only traffic pertaining to a certain host
+|net x.x.x.x/24|	Capture traffic to or from a specific network (using slash notation to specify the mask)
+|src/dst net x.x.x.x/24|	Using src or dst net will only capture traffic sourcing from the specified network or destined to the target network
+|port #|	will filter out all traffic except the port you specify
+|not port #|	will capture everything except the port specified
+|port # and #|	AND will concatenate your specified ports
+|portrange x-x|	portrange will grab traffic from all ports within the range only
+|ip / ether / tcp|	These filters will only grab traffic from specified protocol headers.
+|broadcast / multicast / unicast|	Grabs a specific type of traffic. one to one, one to many, or one to all.
+
+### Display Filters
+Display Filters are used while the capture is running and after the capture has stopped. Display filters are proprietary to Wireshark.
+
+Useful Capture Filters:
+|Display Filters|	Result|
+|:-:|:-:|
+|ip.addr == x.x.x.x|	Capture only traffic pertaining to a certain host. This is an OR statement.
+|ip.addr == x.x.x.x/24|	Capture traffic pertaining to a specific network. This is an OR statement.
+|ip.src/dst == x.x.x.x|	Capture traffic to or from a specific host
+|dns / tcp / ftp / arp / ip|	filter traffic by a specific protocol. There are many more options.
+|tcp.port == x|	filter by a specific tcp port.
+|tcp.port / udp.port != x|	will capture everything except the port specified
+|and / or / not|	AND will concatenate, OR will find either of two options, NOT will exclude your input option.
