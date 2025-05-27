@@ -294,3 +294,16 @@ Useful Capture Filters:
 |tcp.port == x|	filter by a specific tcp port.
 |tcp.port / udp.port != x|	will capture everything except the port specified
 |and / or / not|	AND will concatenate, OR will find either of two options, NOT will exclude your input option.
+
+# Wireshark Advanced Usage
+## The Statistics and Analyze Tabs
+The plugins here can give us detailed reports about the network traffic being utilized. It can show us everything from the top talkers in our environment to specific conversations and breakdown by IP and protocol.
+### Following TCP Streams
+From the Analyze tab, we can utilize plugins that allow us to do things such as following TCP streams.
+
+Wireshark can stitch TCP packets back together to recreate the entire stream in a readable format. This ability also allows us to pull data (images, files, etc.) out of the capture using the 'follow' feature.
+![image](https://github.com/user-attachments/assets/3693a79b-2773-4b92-a220-54a62c051332)
+Alternatively, we can utilize the filter tcp.stream eq # to find and track conversations captured in the pcap file. This will provide us with a stream of captures in the Wireshark screen.
+
+### Extracting Data and Files From a Capture
+Wireshark can recover many different types of data from streams. It requires you to have captured the entire conversation. Otherwise, this ability will fail to put an incomplete datagram back together. 
