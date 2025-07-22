@@ -136,3 +136,47 @@ Some of the main jobs performed by back end components include:
 
 # Front-End Components
 # HTML
+
+HTML is the core of any web page we see on the internet. It contains each page's basic elements, including titles, forms, images, and many other elements. The web browser, in turn, interprets these elements and displays them to the end-user.
+
+HTML elements are displayed in a tree form:
+```
+document
+ - html
+   -- head
+      --- title
+   -- body
+      --- h1
+      --- p
+```
+## URL Encoding
+For a browser to properly display a page's contents, it has to know the charset in use. In URLs, for example, browsers can only use ASCII encoding, which only allows alphanumerical characters and certain special characters. Therefore, all other characters outside of the ASCII character-set have to be encoded within a URL.
+
+Some common character encodings are:
+
+|Character|	Encoding|
+|:-:|:-:|
+|space|	%20
+|!|	%21
+|"|	%22
+|#|	%23
+|$|	%24
+|%|	%25
+|&|	%26
+|'|	%27
+|(|	%28
+|)|	%29
+
+
+## Usage
+The <head> element usually contains elements that are not directly printed on the page, like the page title, while all main page elements are located under <body>. Other important elements include the <style>, which holds the page's CSS code, and the <script>, which holds the JS code of the page.
+
+Each of these elements is called a DOM (Document Object Model). The World Wide Web Consortium (W3C) defines DOM as:
+
+"The W3C Document Object Model (DOM) is a platform and language-neutral interface that allows programs and scripts to dynamically access and update the content, structure, and style of a document."
+
+The DOM standard is separated into 3 parts:
+
+- Core DOM - the standard model for all document types
+- XML DOM - the standard model for XML documents
+- HTML DOM - the standard model for HTML documents
