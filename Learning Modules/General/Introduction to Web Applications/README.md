@@ -180,3 +180,64 @@ The DOM standard is separated into 3 parts:
 - Core DOM - the standard model for all document types
 - XML DOM - the standard model for XML documents
 - HTML DOM - the standard model for HTML documents
+
+# CSS
+CSS (Cascading Style Sheets) is the stylesheet language used alongside HTML to format and set the style of HTML elements.
+
+CSS defines the style of each HTML element or class between curly brackets {}, within which the properties are defined with their values (i.e. element { property : value; }).
+
+Each HTML element has many properties that can be set through CSS, such as height, position, border, margin, padding, color, text-align, font-size, and hundreds of other properties.
+
+### Usage
+CSS is often used alongside JavaScript to make quick calculations, dynamically adjust the style properties of certain HTML elements, or achieve advanced animations based on keystrokes or the mouse cursor location. Furthermore, CSS can be used alongside other languages to implement their styles, like XML or within SVG items, and can also be used in modern mobile development platforms to design entire mobile application User Interfaces (UI).
+
+## Frameworks
+Many CSS frameworks have been introduced, which contain a collection of CSS style-sheets and designs, to make it much faster and easier to create beautiful HTML elements. These frameworks are optimized for web application usage. They are designed to be used with JavaScript and for wide use within a web application and contain elements usually required within modern web applications. Some of the most common CSS frameworks are:
+
+- Bootstrap
+- SASS
+- Foundation
+- Bulma
+- Pure
+
+# Javascript
+JavaScript is usually used on the front end of an application to be executed within a browser. Still, there are implementations of back end JavaScript used to develop entire web applications, like NodeJS.
+
+While HTML and CSS are mainly in charge of how a web page looks, JavaScript is usually used to control any functionality that the front end web page requires. Without JavaScript, a web page would be mostly static and would not have much functionality or interactive elements.
+
+### Example
+Within the page source code, JavaScript code is loaded with the <script> tag, as follows:
+```
+<script type="text/javascript">
+..JavaScript code..
+</script>
+
+ALSO
+
+<script src="./script.js"></script>
+
+AND ALSO
+
+document.getElementById("button1").innerHTML = "Changed Text!";
+```
+### Usage
+Most common web applications heavily rely on JavaScript to drive all needed functionality on the web page.
+JavaScript is also used to automate complex processes and perform HTTP requests to interact with the back end components and send and retrieve data, through technologies like Ajax.
+
+All modern web browsers are equipped with JavaScript engines that can execute JavaScript code on the client-side without relying on the back end webserver to update the page. This makes using JavaScript a very fast way to achieve a large number of processes quickly.
+
+In addition to automation, JavaScript is also often used alongside CSS, to drive advanced animations that would not be possible with CSS alone.
+## Frameworks
+As web applications become more advanced, it may be inefficient to use pure JavaScript to develop an entire web application from scratch. This is why a host of JavaScript frameworks have been introduced to improve the experience of web application development.
+
+These platforms introduce libraries that make it very simple to re-create advanced functionalities, like user login and user registration, and use of dynamically changing HTML code, instead of using static HTML code.
+
+These platforms either use JavaScript as their programming language or use an implementation of JavaScript that compiles its code into JavaScript code.
+
+Some of the most common front end JavaScript frameworks are:
+
+- Angular
+- React
+- Vue
+- jQuery
+
