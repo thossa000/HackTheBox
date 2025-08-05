@@ -241,3 +241,12 @@ Some of the most common front end JavaScript frameworks are:
 - Vue
 - jQuery
 
+# Sensitive Data Exposure
+All of the information covered so far are front end components that interact with the client-side. If they are attacked, they do not pose a direct threat to the core back end of the web application and usually will not lead to permanent damage. However, as these components are executed on the client-side, they put the end-user in danger of being attacked and exploited if they do have any vulnerabilities. If a front end vulnerability is leveraged to attack admin users, it could result in unauthorized access, access to sensitive data, service disruption, and more.
+
+Sensitive Data Exposure refers to the availability of sensitive data in clear-text to the end-user. This is usually found in the source code of the web page or page source on the front end of web applications.
+
+Sometimes we may find login credentials, hashes, exposed links, directories, or even exposed user information data hidden in the comments and source code of a web page or within external JavaScript code being imported.
+
+### Prevention
+Ideally, the front end source code should only contain the code necessary to run all of the web applications functions, without any extra code or comments that are not necessary for the web application to function properly. It is always important to review the code that will be visible to end-users through the page source or run it through tools to check for exposed information. Developers should also review client-side code to ensure that no unnecessary comments or hidden links are left behind. Furthermore, front end developers may want to use JavaScript code packing or obfuscation to reduce the chances of exposing sensitive data through JavaScript code. These techniques may prevent automated tools from locating these types of data.
