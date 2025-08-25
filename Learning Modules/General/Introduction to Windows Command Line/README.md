@@ -176,3 +176,58 @@ Net View will display to us any shared resources the host you are issuing the co
 
 In a standard environment, cmd-prompt usage is not a common thing for a regular user. With that in mind, using net * commands within an environment is not a normal thing either, and can be one way to alert on potential infiltration of a networked host easily. With proper monitoring and logging enabled, we should spot these actions quickly and use them to triage an incident before it gets too far out of hand.
 
+## Finding Files and Directories
+The where command can look through folders automatically. To ensure we dig through all directories within a path, we can use the /R switch.
+```
+where /R C:\Users\student\ bio.txt
+Will only look through authorized directories. Use admin privilege to check more directories.
+```
+
+Find is used to search for text strings or their absence within a file or files. You can also use find against the console's output or another command. Where find is limited, however, is its capability to utilize wildcard patterns in its matching. 
+We can modify the way find searches using several switches:
+
+- /V modifier can change our search from a matching clause to a Not clause.
+- /N switch to display line numbers.
+- /I display to ignore case sensitivity.
+
+The findstr command is similar to find in that it searches through files but for patterns instead. It will look for anything matching a pattern, regex value, wildcards, and more. findstr is closer to grep.
+
+### Evaluating and Sorting Files
+Comp will check each byte within two files looking for differences and then displays where they start. By default, the differences are shown in a decimal format. We can use the /A modifier if we want to see the differences in ASCII format. The /L modifier can also provide us with the line numbers.
+
+FC differs in that it will show you which lines are different, not just an individual character (/A) or byte that is different on each line.
+
+Sort, we can receive input from the console, pipeline, or a file, sort it and send the results to the console or into a file or another command.
+
+## Environment Variables
+Environment variables are settings that are often applied globally to our hosts. They can be found on Windows, Linux, and macOS hosts. This concept is not specific to one OS type, but they function differently on each OS. Environment variables can be accessed by most users and applications on the host and are used to run scripts and speed up how applications function and reference data. On a Windows host, environment variables are not case sensitive and can have spaces and numbers in the name. The only real catch we will find is that they cannot have a name that starts with a number or include an equal sign.
+
+### Variable Scope
+
+- Global variables are accessible globally. In this context, the global scope lets us know that we can access and reference the data stored inside the variable from anywhere within a program.
+- Local variables are only accessible within a local context. Local means that the data stored within these variables can only be accessed and referenced within the function or context in which it has been declared.
+
+Windows, like any other program, contains its own set of variables known as Environment Variables. These variables can be separated into their defined scopes known as System and User scopes. Additionally, there is one more defined scope known as the Process scope:
+
+|Scope|	Description|	Permissions Required to Access|	Registry Location|
+|:-:|:-:|:-:|:-:|
+|System (Machine)|	The System scope contains environment variables defined by the Operating System (OS) and are accessible globally by all users and accounts that log on to the system. The OS requires these variables to function properly and are loaded upon runtime.|	Local Administrator or Domain Administrator|	HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Session Manager\Environment
+|User|	The User scope contains environment variables defined by the currently active user and are only accessible to them, not other users who can log on to the same system.|	Current Active User, Local Administrator, or Domain Administrator|	HKEY_CURRENT_USER\Environment
+|Process|	The Process scope contains environment variables that are defined and accessible in the context of the currently running process. Due to their transient nature, their lifetime only lasts for the currently running process in which they were initially defined. They also inherit variables from the System/User Scopes and the parent process that spawns it (only if it is a child process).|	Current Child Process, Parent Process, or Current Active User|	None (Stored in Process Memory)
+
+### Managing Environment Variables
+Both set and setx are command line utilities that allow us to display, set, and remove environment variables. The set utility only manipulates environment variables in the current command line session. But suppose we need to make permanent changes to environment variables. In that case, we can use setx to make the appropriate changes to the registry, which will exist upon restart of our current command prompt session.
+
+### Important Environment Variables
+
+|Variable Name|	Description|
+|:-:|:-:|
+|%PATH%|	Specifies a set of directories(locations) where executable programs are located.
+|%OS%	|The current operating system on the user's workstation.
+|%SYSTEMROOT%	|Expands to C:\Windows. A system-defined read-only variable containing the Windows system folder. Anything Windows considers important to its core functionality is found here, including important data, core system binaries, and configuration files.
+|%LOGONSERVER%	|Provides us with the login server for the currently active user followed by the machine's hostname. We can use this information to know if a machine is joined to a domain or workgroup.
+|%USERPROFILE%|	Provides us with the location of the currently active user's home directory. Expands to C:\Users\{username}.
+|%ProgramFiles%|	Equivalent of C:\Program Files. This location is where all the programs are installed on an x64 based system.
+|%ProgramFiles(x86)%|	Equivalent of C:\Program Files (x86). This location is where all 32-bit programs running under WOW64 are installed. Note that this variable is only accessible on a 64-bit host. It can be used to indicate what kind of host we are interacting with. (x86 vs. x64 architecture)
+
+## Managing Services
