@@ -383,3 +383,111 @@ WARNING: Are you sure you want to remove the task "My Secret Task" (Y/N)?
 ```
 
 # PowerShell
+### Execution Policy
+An execution policy is not a security control. It is designed to give IT admins a tool to set parameters and safeguards for themselves.
+
+### Tools To Be Aware Of
+- AdminToolbox: AdminToolbox is a collection of helpful modules that allow system administrators to perform any number of actions dealing with things like Active Directory, Exchange, Network management, file and storage issues, and more.
+- ActiveDirectory: This module is a collection of local and remote administration tools for all things Active Directory. We can manage users, groups, permissions, and much more with it.
+- Empire / Situational Awareness: Is a collection of PowerShell modules and scripts that can provide us with situational awareness on a host and the domain they are apart of. This project is being maintained by BC Security as a part of their Empire Framework.
+- Inveigh: Inveigh is a tool built to perform network spoofing and Man-in-the-middle attacks.
+- BloodHound / SharpHound: Bloodhound/Sharphound allows us to visually map out an Active Directory Environment using graphical analysis tools and data collectors written in C# and PowerShell.
+
+Use Get-Module command to check what modules are already loaded in your PS session,  Get-Module -ListAvailable  to show other modules not loaded.
+
+Use Import-Module to add modules to the current session. Also Find-Module to look for Modules to install with Install-Module.
+
+### Creating/Moving/Deleting Files & Directories
+|Command|	Alias|	Description|
+|:-:|:-:|:-:|
+|Get-Item|	gi|	Retrieve an object (could be a file, folder, registry object, etc.)
+|Get-ChildItem|	ls / dir / gci	|Lists out the content of a folder or registry hive.
+|New-Item|	md / mkdir / ni|	Create new objects. ( can be files, folders, symlinks, registry entries, and more)
+|Set-Item|	si|	Modify the property values of an object.
+|Copy-Item|	copy / cp / ci|	Make a duplicate of the item.
+|Rename-Item|	ren / rni|	Changes the object name.
+|Remove-Item|	rm / del / rmdir|	Deletes the object.
+|Get-Content|	cat / type|	Displays the content within a file or object.
+|Add-Content|	ac|	Append content to a file.
+|Set-Content|	sc|	overwrite any content in a file with new data.
+|Clear-Content|	clc|	Clear the content of the files without deleting the file itself.
+|Compare-Object|	diff / compare|	Compare two or more objects against each other. This includes the object itself and the content within.
+
+### Finding & Filtering Content
+
+Explanation of PowerShell Output (Objects Explained)
+
+With PowerShell, not everything is generic text strings like in Bash or cmd. In PowerShell, everything is an Object. However, what is an object? Let us examine this concept further:
+
+What is an Object? An object is an individual instance of a class within PowerShell. Let us use the example of a computer as our object. The total of everything (parts, time, design, software, etc.) makes a computer a computer.
+
+What is a Class? A class is the schema or 'unique representation of a thing (object) and how the sum of its properties define it. The blueprint used to lay out how that computer should be assembled and what everything within it can be considered a Class.
+
+What are Properties? Properties are simply the data associated with an object in PowerShell. For our example of a computer, the individual parts that we assemble to make the computer are its properties. Each part serves a purpose and has a unique use within the object.
+
+What are Methods? Simply put, methods are all the functions our object has. Our computer allows us to process data, surf the internet, learn new skills, etc. All of these are the methods for our object.
+
+Get an Object (User) and its Properties/Methods: Get-Member
+
+Property Output (All): Select-Object -Properties *
+
+Sorting and Grouping: Sort-Object -Property Name(Your choice to filter by which property)
+
+Example: 
+```
+get-service | Select-Object -Property DisplayName,Name,Status | Sort-Object DisplayName | fl
+
+PS C:\htb> Get-Service | where DisplayName -like '*Defender*' | Select-Object -Property * | fl
+```
+
+Using the Pipeline to Count Unique Instances: get-process | sort | unique | measure-object
+
+These operators can be useful in helping us set conditions for scripts that execute if a goal or condition is met.:
+
+### Basic Search Query
+Select-String (sls as an alias) for those more familiar with using the Linux CLI, functions much in the same manner as Grep does or findstr.exe within the Windows Command-Prompt. 
+
+Hunting for a specific file:
+```
+Get-ChildItem -Path C:\Users\MTanaka\ -File -Recurse
+
+Get-Childitem –Path C:\Users\MTanaka\ -File -Recurse -ErrorAction SilentlyContinue | where {($_.Name -like "*.txt")}
+
+Get-ChildItem -Path C:\Users\MTanaka\ -Filter "*.txt" -Recurse -File | sls "Password","credential","key"
+
+Get-Childitem –Path C:\Users\MTanaka\ -File -Recurse -ErrorAction SilentlyContinue | where {($_.Name -like "*.txt" -or $_.Name -like "*.py" -or $_.Name -like "*.ps1" -or $_.Name -like "*.md" -or $_.Name -like "*.csv")}
+
+Get-Childitem –Path C:\Users\MTanaka\ -File -Recurse -ErrorAction SilentlyContinue | where {($_. Name -like "*.txt" -or $_. Name -like "*.py" -or $_. Name -like "*.ps1" -or $_. Name -like "*.md" -or $_. Name -like "*.csv")} | sls "Password","credential","key","UserName"
+```
+- &&: Sets a condition in which PowerShell will execute the next command inline if the current command completes properly.
+- ||: Sets a condition in which PowerShell will execute the following command inline if the current command fails.
+
+### Helpful Directories to Check
+
+- Looking in a Users \AppData\ folder is a great place to start. Many applications store configuration files, temp saves of documents, and more.
+- Users home folder C:\Users\User\ is a common storage place; things like VPN keys, SSH keys, and more are stored. Typically in hidden folders. (Get-ChildItem -Hidden)
+- The Console History files kept by the host are an endless well of information, especially if you land on an administrator's host. You can check two different points:
+1. C:\Users\<USERNAME>\AppData\Roaming\Microsoft\Windows\Powershell\PSReadline\ConsoleHost_history.txt
+2. Get-Content (Get-PSReadlineOption).HistorySavePath
+- Checking a user's clipboard may also yield useful information. You can do so with Get-Clipboard
+- Looking at Scheduled tasks can be helpful as well.
+
+### How Do We Interact with Remote Services using PowerShell?
+```
+invoke-command -ComputerName ACADEMY-ICL-DC,LOCALHOST -ScriptBlock {Get-Service -Name 'windefend'}
+```
+- Invoke-Command: We are telling PowerShell that we want to run a command on a local or remote computer.
+- Computername: We provide a comma-defined list of computer names to query.
+- ScriptBlock {commands to run}: This portion is the enclosed command we want to run on the computer. For it to run, we need it to be enclosed in {}.
+
+## Finding Info In The Registry
+Finding data within the Registry using Reg.exe. We can use it to search for keywords and strings like Password and Username through key and value names or the data contained.
+
+Using the following Reg Query. We will look at the command string REG QUERY HKCU /F "password" /t REG_SZ /S /K.
+
+- Reg query: We are calling on Reg.exe and specifying that we want to query data.
+- HKCU: This portion is setting the path to search. In this instance, we are looking in all of HKey_Current_User.
+- /f "password": /f sets the pattern we are searching for. In this instance, we are looking for "Password".
+- /t REG_SZ: /t is setting the value type to search. If we do not specify, reg query will search through every type.
+- /s: /s says to search through all subkeys and values recursively.
+- /k: /k narrows it down to only searching through Key names.
