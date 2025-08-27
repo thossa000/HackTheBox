@@ -491,3 +491,149 @@ Using the following Reg Query. We will look at the command string REG QUERY HKCU
 - /t REG_SZ: /t is setting the value type to search. If we do not specify, reg query will search through every type.
 - /s: /s says to search through all subkeys and values recursively.
 - /k: /k narrows it down to only searching through Key names.
+
+## Working with the Windows Event Log
+User-Generated Events
+
+- Movement of a mouse, typing on a keyboard, other user-controlled peripherals, etc.
+  
+Application Generated Events
+
+- Application updates, crashes, memory usage/consumption, etc.
+  
+System Generated Events
+
+- System uptime, system updates, driver loading/unloading, user login, etc.
+
+Event Logging as defined by Microsoft:
+
+"...provides a standard, centralized way for applications (and the operating system) to record important software and hardware events."
+
+|Log Category|	Log Description
+|:-:|:-:|
+|System Log|	The system log contains events related to the Windows system and its components. A system-level event could be a service failing at startup.
+|Security Log|	Self-explanatory; these include security-related events such as failed and successful logins, and file creation/deletion. These can be used to detect various types of attacks that we will cover in later modules.
+|Application Log|	This stores events related to any software/application installed on the system. For example, if Slack has trouble starting it will be recorded in this log.
+|Setup Log|	This log holds any events that are generated when the Windows operating system is installed. In a domain environment, events related to Active Directory will be recorded in this log on domain controller hosts.
+|Forwarded Events|	Logs that are forwarded from other hosts within the same network.
+
+|Type of Event|	Event Description
+|:-:|:-:|
+|Error|	Indicates a major problem, such as a service failing to load during startup, has occurred.
+|Warning|	A less significant log but one that may indicate a possible problem in the future. One example is low disk space. A Warning event will be logged to note that a problem may occur down the road. A Warning event is typically when an application can recover from the event without losing functionality or data.
+|Information|	Recorded upon the successful operation of an application, driver, or service, such as when a network driver loads successfully. Typically not every desktop application will log an event each time they start, as this could lead to a considerable amount of extra "noise" in the logs.
+|Success Audit|	Recorded when an audited security access attempt is successful, such as when a user logs on to a system.
+|Failure Audit|	Recorded when an audited security access attempt fails, such as when a user attempts to log in but types their password in wrong. Many audit failure events could indicate an attack, such as Password Spraying.
+
+|Severity Level|	Level #|	Description
+|:-:|:-:|:-:|
+|Verbose|	5|	Progress or success messages.
+|Information|	4|	An event that occurred on the system but did not cause any issues.
+|Warning	|3	|A potential problem that a sysadmin should dig into.
+|Error	|2	|An issue related to the system or service that does not require immediate attention.
+|Critical|	1	|This indicates a significant issue related to an application or a system that requires urgent attention by a sysadmin that, if not addressed, could lead to system or application instability.
+
+On a Windows system, the service's display name is Windows Event Log, and it runs inside the service host process svchost.exe. If it is stopped, it will likely cause significant system instability. By default, Windows Event Logs are stored in C:\Windows\System32\winevt\logs with the file extension .evtx.
+
+We can interact with the Windows Event log using the Windows Event Viewer GUI application via the command line utility wevtutil, or using the Get-WinEvent PowerShell cmdlet.
+
+### PowerShell - Listing Logs
+```
+# Listing All Logs
+Get-WinEvent -ListLog *
+# Security Log Details
+Get-WinEvent -ListLog Security
+# Querying Last Five Events
+Get-WinEvent -LogName 'Security' -MaxEvents 5 | Select-Object -ExpandProperty Message
+# Filtering for Logon Failures
+Get-WinEvent -FilterHashTable @{LogName='Security';ID='4625 '}
+# Filtering to Critical Severity only
+Get-WinEvent -FilterHashTable @{LogName='System';Level='1'} | select-object -ExpandProperty Message
+```
+
+## PowerShell Net Cmdlets
+
+|Cmdlet|	Description|
+|:-:|:-:|
+|Get-NetIPInterface|	Retrieve all visible network adapter properties.
+|Get-NetIPAddress|	Retrieves the IP configurations of each adapter. Similar to IPConfig.
+|Get-NetNeighbor|	Retrieves the neighbor entries from the cache. Similar to arp -a.
+|Get-Netroute|	Will print the current route table. Similar to IPRoute.
+|Set-NetAdapter|	Set basic adapter properties at the Layer-2 level such as VLAN id, description, and MAC-Address.
+|Set-NetIPInterface|	Modifies the settings of an interface to include DHCP status, MTU, and other metrics.
+|New-NetIPAddress|	Creates and configures an IP address.
+|Set-NetIPAddress|	Modifies the configuration of a network adapter.
+|Disable-NetAdapter|	Used to disable network adapter interfaces.
+|Enable-NetAdapter|	Used to turn network adapters back on and allow network connections.
+|Restart-NetAdapter|	Used to restart an adapter. It can be useful to help push changes made to adapter settings.
+|Test-NetConnection|	Allows for diagnostic checks to be ran on a connection. It supports ping, tcp, route tracing, and more.
+
+### Setting up SSH on a Windows Target
+We can set up an SSH server on a Windows target using the Add-WindowsCapability cmdlet and confirm that it is successfully installed using the Get-WindowsCapability cmdlet.
+
+```
+Get-WindowsCapability -Online | Where-Object Name -like 'OpenSSH*'
+Add-WindowsCapability -Online -Name OpenSSH.Client~~~~0.0.1.0
+
+PS C:\Users\htb-student> Start-Service sshd  
+```
+### Enabling & Configuring WinRM
+Windows Remote Management (WinRM) can be configured using dedicated PowerShell cmdlets and we can enter into a PowerShell interactive session as well as issue commands on remote Windows target(s). When WinRM is enabled on a Windows target, it listens on logical ports 5985 & 5986.
+
+```
+winrm quickconfig
+
+# Testing Unauthenticated Access
+Test-WSMan -ComputerName "10.129.224.248"
+
+# Testing Authenticated Access
+Test-WSMan -ComputerName "10.129.224.248" -Authentication Negotiate
+
+# Establishing a PowerShell Session
+Enter-PSSession -ComputerName 10.129.224.248 -Credential htb-student -Authentication Negotiate
+```
+
+## Interacting With The Web
+The Invoke-WebRequest cmdlet can be used to perform basic HTTP/HTTPS requests (like GET and POST), parse through HTML pages, download files, authenticate, and even maintain a session with a site.
+
+The Invoke-WebRequest cmdlet is aliased to wget, iwr and curl.
+
+```
+# Get Request with Invoke-WebRequest
+Invoke-WebRequest -Uri "https://web.ics.purdue.edu/~gchopra/class/public/pages/webdesign/05_simple.html" -Method GET | Get-Member
+
+# Filtering Incoming Content
+Invoke-WebRequest -Uri "https://web.ics.purdue.edu/~gchopra/class/public/pages/webdesign/05_simple.html" -Method GET | fl Images
+
+# Raw Content
+Invoke-WebRequest -Uri "https://web.ics.purdue.edu/~gchopra/class/public/pages/webdesign/05_simple.html" -Method GET | fl RawContent
+
+# Download To Our Host
+Invoke-WebRequest -Uri "https://raw.githubusercontent.com/PowerShellMafia/PowerSploit/master/Recon/PowerView.ps1" -OutFile "C:\PowerView.ps1"
+```
+
+### What If We Can't Use Invoke-WebRequest?
+Windows provides several different methods to interact with web clients. If PowerShell is blocked we can send web requests by utilizing the .Net.WebClient class.
+```
+# Net.WebClient Download
+PS C:\htb> (New-Object Net.WebClient).DownloadFile("https://github.com/BloodHoundAD/BloodHound/releases/download/4.2.0/BloodHound-win32-x64.zip", "Bloodhound.zip")
+```
+
+## PowerShell Scripting and Automation
+### File Extensions
+
+|Extension|	Description|
+|:-:|:-:|
+|ps1	|The *.ps1 file extension represents executable PowerShell scripts.
+|psm1	|The *.psm1 file extension represents a PowerShell module file. It defines what the module is and what is contained within it.
+|psd1	|The *.psd1 is a PowerShell data file detailing the contents of a PowerShell module in a table of key/value pairs.
+
+### Module Components
+A module is made up of four essential components:
+
+- A directory containing all the required files and content, saved somewhere within $env:PSModulePath. This is done so that when you attempt to import it into your PowerShell session or Profile, it can be automatically found instead of having to specify where it is.=-
+- A manifest file listing all files and pertinent information about the module and its function. This could include associated scripts, dependencies, the author, example usage, etc.
+- Some code file - usually either a PowerShell script (.ps1) or a (.psm1) module file that contains our script functions and other information.
+- Other resources the module needs, such as help files, scripts, and other supporting documents.
+
+ We could have our module be just a *.psm1 file that contains our scripts and context, skipping the manifest and other helper files. PowerShell would be able to interpret and understand what to do in either instance.
