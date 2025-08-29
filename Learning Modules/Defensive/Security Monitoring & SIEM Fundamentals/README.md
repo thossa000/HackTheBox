@@ -135,6 +135,18 @@ The following critical stages must be considered when developing any use cases:
 
 5. Documentation: Standard Operating Procedures (SOP) detail the standard processes analysts must follow when working on alerts. This includes conditions, aggregations, priorities, and information about other teams to which analysts need to report activities. The SOP also contains the escalation matrix.
 
-Onboarding: Start with the development stage before moving the alert directly into the production environment. Identify and address any gaps to reduce false positives, then proceed to production.
+6. Onboarding: Start with the development stage before moving the alert directly into the production environment. Identify and address any gaps to reduce false positives, then proceed to production.
 
 Periodic Update/Fine-tuning: Obtain regular feedback from analysts and maintain up-to-date correlation rules by whitelisting. Continually refine and optimize the use case to ensure its effectiveness and accuracy.
+
+### How To Build SIEM Use Cases
+- Comprehend your needs, risks, and establish alerts for monitoring all necessary systems accordingly.
+- Determine the priority and impact, then map the alert to the kill chain or MITRE framework.
+- Establish the Time to Detection (TTD) and Time to Response (TTR) for the alert to assess the SIEM's effectiveness and analysts' performance.
+- Create a Standard Operating Procedure (SOP) for managing alerts.
+- Outline the process for refining alerts based on SIEM monitoring.
+- Develop an Incident Response Plan (IRP) to address true positive incidents.
+- Set Service Level Agreements (SLAs) and Operational Level Agreements (OLAs) between teams for handling alerts and following the IRP.
+- Implement and maintain an audit process for managing alerts and incident reporting by analysts.
+- Create documentation to review the logging status of machines or systems, the basis for creating alerts, and their triggering frequency.
+- Establish a knowledge base document for essential information and updates to case management tools.
