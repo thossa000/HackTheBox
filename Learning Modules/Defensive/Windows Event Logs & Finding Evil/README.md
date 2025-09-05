@@ -33,3 +33,68 @@ The Keywords field is particularly useful when filtering event logs for specific
 
 ### Leveraging Custom XML Queries
 To streamline analysis, we can create custom XML queries to identify related events using the "Logon ID" as a starting point. By navigating to "Filter Current Log" -> "XML" -> "Edit Query Manually," we gain access to a custom XML query language that enables more granular log searches.
+
+## Sysmon Basics
+System Monitor (Sysmon) is a Windows system service and device driver that remains resident across system reboots to monitor and log system activity to the Windows event log. Sysmon provides detailed information about process creation, network connections, changes to file creation time, and more.
+
+Sysmon's primary components include:
+
+- A Windows service for monitoring system activity.
+- A device driver that assists in capturing the system activity data.
+- An event log to display captured activity data.
+
+Sysmon's unique capability lies in its ability to log information that typically doesn't appear in the Security Event logs, and this makes it a powerful tool for deep system monitoring and cybersecurity forensic analysis.
+
+Sysmon categorizes different types of system activity using event IDs, for example, Event ID 1 corresponds to "Process Creation" events, and Event ID 3 refers to "Network Connection" events.
+
+### Detecting DLL Hijacking
+To detect a DLL hijack, we need to focus on Event Type 7, which corresponds to module load events. To achieve this, we need to modify the sysmonconfig-export.xml Sysmon configuration file we downloaded from https://github.com/SwiftOnSecurity/sysmon-config.
+
+To utilize the updated Sysmon configuration, execute the following.
+```
+C:\Tools\Sysmon> sysmon.exe -c sysmonconfig-export.xml
+```
+With the modified Sysmon configuration, we can start observing image load events. To view these events, navigate to the Event Viewer and access "Applications and Services" -> "Microsoft" -> "Windows" -> "Sysmon."
+
+For the purpose of our detection, we will focus on a specific hijack involving the vulnerable executable calc.exe and a list of DLLs that can be hijacked.
+<img width="1000" height="550" alt="image" src="https://github.com/user-attachments/assets/35335705-abf1-4048-8eff-94c32f5819a8" />
+
+### Detecting Credential Dumping
+Another critical aspect of cybersecurity is detecting credential dumping activities. One widely used tool for credential dumping is Mimikatz, offering various methods for extracting Windows credentials. One specific command, "sekurlsa::logonpasswords", enables the dumping of password hashes or plaintext passwords by accessing the Local Security Authority Subsystem Service (LSASS). LSASS is responsible for managing user credentials and is a primary target for credential-dumping tools like Mimikatz.
+
+```
+C:\Tools\Mimikatz> mimikatz.exe
+
+mimikatz # privilege::debug
+Privilege '20' OK
+
+mimikatz # sekurlsa::logonpasswords
+
+Authentication Id : 0 ; 1128191 (00000000:001136ff)
+Session           : RemoteInteractive from 2
+User Name         : Administrator
+Domain            : DESKTOP-NU10MTO
+Logon Server      : DESKTOP-NU10MTO
+Logon Time        : 5/31/2023 4:14:41 PM
+SID               : S-1-5-21-2712802632-2324259492-1677155984-500
+        msv :
+         [00000003] Primary
+         * Username : Administrator
+         * Domain   : DESKTOP-NU10MTO
+         * NTLM     : XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+         * SHA1     : XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX0812156b
+        tspkg :
+        wdigest :
+         * Username : Administrator
+         * Domain   : DESKTOP-NU10MTO
+         * Password : (null)
+        kerberos :
+         * Username : Administrator
+         * Domain   : DESKTOP-NU10MTO
+         * Password : (null)
+        ssp :   KO
+        credman :
+```
+To detect this activity, we can rely on a different Sysmon event. Instead of focusing on DLL loads, we shift our attention to process access events. By checking Sysmon event ID 10, which represents "ProcessAccess" events, we can identify any suspicious attempts to access LSASS.
+
+## Event Tracing for Windows (ETW)
