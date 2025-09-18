@@ -63,3 +63,53 @@ Key facets of threat hunting include:
 6. Mitigating Threats: If we confirm a threat, we must undertake remediation actions. This could involve isolating affected systems, eliminating malware, patching vulnerabilities, or modifying configurations. Our goal is to eradicate the threat and limit any potential damage.
 7. After the Hunt: Once the threat hunting cycle concludes, it's crucial to document and share the findings, methods, and outcomes. This might involve updating threat intelligence platforms, enhancing detection rules, refining incident response playbooks, or improving security policies. It's also vital to learn from each threat hunting mission to enhance future efforts.
 8. Continuous Learning and Enhancement: Threat hunting is not a one-time task, but a continuous process of learning and refinement. Each threat hunting cycle should feed into the next, allowing for continuous improvement of hypotheses, methodologies, and tools based on the evolving threat landscape and the organization's changing risk profile.
+
+## Threat Intel Definitions
+
+Threat Intelligence (Predictive): The primary aim here is to anticipate the adversary's moves, ascertain their targets, and discern their methods of information acquisition. The adversary has a specific objective, and as a team involved in Threat Intelligence, our mission is to predict:
+
+- The location of the intended attack
+- The timing of the attack
+- The operational strategies the adversary will employ
+- The ultimate objectives of the adversary
+
+Threat Hunting (Reactive and Proactive): An initiating event or incident, whether it occurs within our network or in a network of a similar industry, prompts our team to launch an operation to ascertain whether an adversary is present in the network, or if one was present and evaded detection.
+
+TTPs (Tactics, Techniques, and Procedures): TTPs refer to the specific methods used by adversaries to conduct their attacks. Tactics describe the adversary's overall objectives, techniques describe the actions taken to achieve those objectives, and procedures are the exact steps taken to execute the techniques. Identifying an adversary's TTPs can provide the most valuable insight into their operations and are the most difficult for an adversary to change without significant cost and effort. Examples might include the use of spear-phishing emails for initial access (tactic), exploitation of a specific software vulnerability (technique), and the specific steps taken to exploit that vulnerability (procedure).
+
+Diamond Model: The Diamond Model of Intrusion Analysis is a conceptual framework designed to illustrate the fundamental aspects of a cyber intrusion. This model, developed by Sergio Caltagirone, Andrew Pendergast, and Christopher Betz, aims to provide a more structured approach to understand, analyze, and respond to cyber threats.
+<img width="749" height="542" alt="image" src="https://github.com/user-attachments/assets/fd3348c9-17bb-4385-a667-484de23eeb27" />
+
+EX: Suppose a financial institution (Victim) is targeted by a cybercriminal group (Adversary). The group uses spear-phishing emails (Capability) sent from a botnet (Infrastructure) to deliver a banking Trojan. When a recipient clicks on a malicious link in the email, the Trojan is installed on their system, allowing the cybercriminals to steal sensitive financial data.
+
+These four components are connected by bidirectional arrows, representing the dynamic relationships and interactions between them. For example, an adversary uses capabilities through an infrastructure to target a victim. This model allows for the capture of complex relationships and the construction of robust strategies for threat detection, mitigation, and prediction.
+
+Comparing this to the Cyber Kill Chain model, we can see that the Diamond Model provides a more detailed view of the cyber intrusion ecosystem. While the Cyber Kill Chain focuses more on the stages of an attack (from reconnaissance to actions on objectives), the Diamond Model provides a more holistic view of the components involved in the intrusion and their interrelationships.
+
+For CTI to be effective, it must be Actionable, Timely, Relevant, and Accurate. These four elements form the foundation of robust CTI that ultimately provides visibility into adversary operations. Additionally, well-constructed CTI brings forth secondary benefits, such as:
+
+- Understanding of threats to our organization and partner entities
+- Potential insights into our organization's network
+- Enhanced awareness of potential problems that may have gone unnoticed
+
+## Useful Event IDs and KQL Fields
+
+### Sysmon Event IDs
+4104 - Windows Security Event ID for PowerShell Script Block Logging
+13 - Identifies Registry value modifications
+3 - Network Connection Detected
+5140 - A network share object was accessed
+
+### KQL Fields
+- event.code
+- winlog.event_data.LogonType
+- winlog.user.name and user.name
+- powershell.file.script_block_text
+- registry.value
+- file.name
+- source.ip and destination.ip
+- dns.question.name /  dns.answers.data
+- process.name and process.pid
+- process.args
+- process.command_line / process.parent.name / process.executable / process.parent.executable
+- process.hash.sha256
