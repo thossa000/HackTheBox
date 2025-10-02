@@ -211,4 +211,33 @@ The cmdlet provides us with the capability to retrieve different types of event 
 To quickly identify the available logs, we can leverage the -ListLog parameter in conjunction with the Get-WinEvent cmdlet. By specifying * as the parameter value, we retrieve all logs without applying any filtering criteria.
 ```
 PS C:\Users\Administrator> Get-WinEvent -ListLog * | Select-Object LogName, RecordCount, IsClassicLog, IsEnabled, LogMode, LogType | Format-Table -AutoSize
+
+PS C:\Users\Administrator> Get-WinEvent -LogName 'Microsoft-Windows-WinRM/Operational' -Oldest -MaxEvents 30 | Select-Object TimeCreated, ID, ProviderName, LevelDisplayName, Message | Format-Table -AutoSize
+
+PS C:\Users\Administrator> Get-WinEvent -FilterHashtable @{LogName='Microsoft-Windows-Sysmon/Operational'; ID=1,3} | Select-Object TimeCreated, ID, ProviderName, LevelDisplayName, Message | Format-Table -AutoSize
+```
+
+```
+Get-WinEvent -FilterHashtable @{LogName='Microsoft-Windows-Sysmon/Operational'; ID=3} |
+`ForEach-Object {
+$xml = [xml]$_.ToXml()
+$eventData = $xml.Event.EventData.Data
+New-Object PSObject -Property @{
+    SourceIP = $eventData | Where-Object {$_.Name -eq "SourceIp"} | Select-Object -ExpandProperty '#text'
+    DestinationIP = $eventData | Where-Object {$_.Name -eq "DestinationIp"} | Select-Object -ExpandProperty '#text'
+    ProcessGuid = $eventData | Where-Object {$_.Name -eq "ProcessGuid"} | Select-Object -ExpandProperty '#text'
+    ProcessId = $eventData | Where-Object {$_.Name -eq "ProcessId"} | Select-Object -ExpandProperty '#text'
+}
+}  | Where-Object {$_.DestinationIP -eq "52.113.194.132"}
+```
+
+```
+Get-WinEvent -Path '.\CrowdStrike Containment Logs - Blocked.evtx' | ForEach-Object {
+>>  $xml = [xml]$_.ToXml()
+>>  $eventData = $xml.Event.EventData.Data
+>>  New-Object PSObject -Property @{
+>>      Application = $eventData | Where-Object {$_.Name -eq "Application"} | Select-Object -ExpandProperty '#text'
+>>      DestinationIP = $eventData | Where-Object {$_.Name -eq "DestAddress"} | Select-Object -ExpandProperty '#text'
+>>      ProcessGuid = $eventData | Where-Object {$_.Name -eq "Processid"} | Select-Object -ExpandProperty '#text'
+>> }} | Where {$_.DestinationIP -notlike 'f*' -and $_.Application -like '*zscaler*'}
 ```
