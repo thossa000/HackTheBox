@@ -66,3 +66,17 @@ When a TGS is requested, an event log with ID 4769 is generated. However, AD als
 Even though the general volume of this event is quite heavy, we still can alert against the default option on many tools. When we run 'Rubeus', it will extract a ticket for each user in the environment with an SPN registered; this allows us to alert if anyone generates more than ten tickets within a minute (for example, but it could be less than ten). This event ID should be grouped by the user requesting the tickets and the machine the requests originated from. Ideally, we need to aim to create two separate rules that alert both.
 
 A honeypot user is a perfect detection option to configure in an AD environment; this must be a user with no real use/need in the environment, so no service tickets are generated regularly. In this case, any attempt to generate a service ticket for this account is likely malicious and worth inspecting. 
+
+Question 2#: 
+
+```
+Get-WinEvent -FilterHashtable @{LogName='Security'; ID=4769} |
+>>  ForEach-Object {
+>>  $xml = [xml]$_.ToXml()
+>>  $eventData = $xml.Event.EventData.Data
+>>  New-Object PSObject -Property @{
+>>      MachineName = $eventData | Where-Object {$_.Name -eq "AccountName"} | Select-Object -ExpandProperty '#text'
+>>      UserID = $eventData | Where-Object {$_.Name -eq "ServiceName"} | Select-Object -ExpandProperty '#text'
+>>      SID = $eventData | Where-Object {$_.Name -eq "ServiceSid"} | Select-Object -ExpandProperty '#text'
+>> }} | Where{$_.UserID -like 'web*'}
+```
