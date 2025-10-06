@@ -38,6 +38,11 @@ KDC key is an encryption key that proves the TGT is valid. AD creates the KDC ke
 - 3389: RDP
 - 5985 & 5986: PowerShell Remoting (WinRM)
 
+### Connecting to SMB client on Linux
+```
+smbclient \\\\TARGET_IP\\Share -U DOMAIN/USERNAME%PASSWORD
+```
+
 ## Kerberoasting
 Kerberoasting is a post-exploitation attack that attempts to exploit this behavior by obtaining a ticket and performing offline password cracking to open the ticket. If the ticket opens, then the candidate password that opened the ticket is the service account's password. The success of this attack depends on the strength of the service account's password. Another factor that has some impact is the encryption algorithm used when the ticket is created, with the likely options being:
 
@@ -71,12 +76,106 @@ Question 2#:
 
 ```
 Get-WinEvent -FilterHashtable @{LogName='Security'; ID=4769} |
->>  ForEach-Object {
->>  $xml = [xml]$_.ToXml()
->>  $eventData = $xml.Event.EventData.Data
->>  New-Object PSObject -Property @{
->>      MachineName = $eventData | Where-Object {$_.Name -eq "AccountName"} | Select-Object -ExpandProperty '#text'
->>      UserID = $eventData | Where-Object {$_.Name -eq "ServiceName"} | Select-Object -ExpandProperty '#text'
->>      SID = $eventData | Where-Object {$_.Name -eq "ServiceSid"} | Select-Object -ExpandProperty '#text'
->> }} | Where{$_.UserID -like 'web*'}
+ ForEach-Object {
+ $xml = [xml]$_.ToXml()
+ $eventData = $xml.Event.EventData.Data
+ New-Object PSObject -Property @{
+     MachineName = $eventData | Where-Object {$_.Name -eq "AccountName"} | Select-Object -ExpandProperty '#text'
+     UserID = $eventData | Where-Object {$_.Name -eq "ServiceName"} | Select-Object -ExpandProperty '#text'
+     SID = $eventData | Where-Object {$_.Name -eq "ServiceSid"} | Select-Object -ExpandProperty '#text'
+}} | Where{$_.UserID -like 'web*'}
 ```
+## AS-REProasting
+The AS-REProasting attack is similar to the Kerberoasting attack; we can obtain crackable hashes for user accounts that have the property Do not require Kerberos preauthentication enabled. The success of this attack depends on the strength of the user account password that we will crack.
+
+We can use Rubeus again. However, this time, we will use the asreproast action. If we don't specify a name, Rubeus will extract hashes for each user that has Kerberos preauthentication not required:
+```
+PS C:\Users\bob\Downloads> .\Rubeus.exe asreproast /outfile:asrep.txt
+```
+
+For hashcat to be able to recognize the hash, we need to edit it by adding 23$ after $krb5asrep$:
+```
+# Edit txt file
+$krb5asrep$23$anni@eagle.local:1b912b858c4551c0013dbe81ff0f01d7$c64803358a43d05383e9e01374e8f2b2c92f9d6c669cdc4a1b9c1ed684c7857c965b8e44a285bc0e2f1bc248159aa7448494de4c1f997382518278e375a7a4960153e13dae1cd28d05b7f2377a038062f8e751c1621828b100417f50ce617278747d9af35581e38c381bb0a3ff246912def5dd2d53f875f0a64c46349fdf3d7ed0d8ff5a08f2b78d83a97865a3ea2f873be57f13b4016331eef74e827a17846cb49ccf982e31460ab25c017fd44d46cd8f545db00b6578150a4c59150fbec18f0a2472b18c5123c34e661cc8b52dfee9c93dd86e0afa66524994b04c5456c1e71ccbd2183ba0c43d2550
+
+thossa00@htb[/htb]$ sudo hashcat -m 18200 -a 0 asrep.txt passwords.txt --outfile asrepcrack.txt --force
+```
+### Prevention
+We should only use this property if needed; a good practice is to review accounts quarterly to ensure that we have not assigned this property. Because this property is often found with some regular user accounts, they tend to have easier-to-crack passwords than service accounts with SPNs (those from Kerberoast). Therefore, for users requiring this configured, we should assign a separate password policy, which requires at least 20 characters to thwart cracking attempts.
+
+
+
+### Detection
+When we executed Rubeus, an Event with ID 4768 was generated, signaling that a Kerberos Authentication ticket was generated.
+
+PS Script used to find event:
+```
+Get-WinEvent -FilterHashtable @{LogName='Security'; ID=4768} |
+>>   ForEach-Object {
+>>   $xml = [xml]$_.ToXml()
+>>   $eventData = $xml.Event.EventData.Data
+>>   New-Object PSObject -Property @{
+>>       MachineName = $eventData | Where-Object {$_.Name -eq "Computer"} | Select-Object -ExpandProperty '#text'
+>>       UserID = $eventData | Where-Object {$_.Name -eq "TargetUserName"} | Select-Object -ExpandProperty '#text'
+>>       SID = $eventData | Where-Object {$_.Name -eq "TargetSid"} | Select-Object -ExpandProperty '#text'
+>> }} | Where{$_.UserID -like 'svc*'}
+```
+
+## GPP Passwords
+AD stores all group policies in \\<DOMAIN>\SYSVOL\<DOMAIN>\Policies\. When Microsoft released it with the Windows Server 2008, Group Policy Preferences (GPP) introduced the ability to store and use credentials in several scenarios, all of which AD stores in the policies directory in SYSVOL.
+
+During engagements, we might encounter scheduled tasks and scripts executed under a particular user and contain the username and an encrypted version of the password in XML policy files. The encryption key that AD uses to encrypt the XML policy files (the same for all Active Directory environments) was released on Microsoft Docs, allowing anyone to decrypt credentials stored in the policy files. Anyone can decrypt the credentials because the SYSVOL folder is accessible to all 'Authenticated Users' in the domain, which includes users and computers. 
+
+To abuse GPP Passwords, we will use the Get-GPPPassword function from PowerSploit, which automatically parses all XML files in the Policies folder in SYSVOL, picking up those with the cpassword property and decrypting them once detected:
+```
+PS C:\Users\bob\Downloads> Import-Module .\Get-GPPPassword.ps1
+PS C:\Users\bob\Downloads> Get-GPPPassword
+```
+
+### Prevention
+Once the encryption key was made public and started to become abused, Microsoft released a patch (KB2962486) in 2014 to prevent caching credentials in GPP. Therefore, GPP should no longer store passwords in new patched environments. However, unfortunately, there are a multitude of Active Directory environments built after 2015, which for some reason, do contain credentials in SYSVOL.
+
+### Detection
+There are two detection techniques for this attack:
+
+- Accessing the XML file containing the credentials should be a red flag if we are auditing file access; this is more realistic (due to volume otherwise) regarding detection if it is a dummy XML file, not associated with any GPO. In this case, there will be no reason for anyone to touch this file, and any attempt is likely suspicious. As demonstrated by Get-GPPPasswords, it parses all of the XML files in the Policies folder. For auditing, we can generate an event whenever a user reads the file.
+
+Once auditing is enabled, any access to the file will generate an Event with the ID 4663
+
+- Logon attempts (failed or successful, depending on whether the password is up to date) of the user whose credentials are exposed is another way of detecting the abuse of this attack; this should generate one of the events 4624 (successful logon), 4625 (failed logon), or 4768 (TGT requested).
+
+## GPO Permissions/GPO Files
+A Group Policy Object (GPO) is a virtual collection of policy settings that has a unique name. GPOs are the most widely used configuration management tool in Active Directory. Each GPO contains a collection of zero or more policy settings. 
+
+### Prevention
+One way to prevent this attack is to lock down the GPO permissions to be modified by a particular group of users only or by a specific account, as this will significantly limit the ability of who can edit the GPO or change its permissions (as opposed to everybody in Domain admins, which in some organizations can easily be more than 50). Similarly, never deploy files stored in network locations so that many users can modify the share permissions.
+
+### Detection
+ If Directory Service Changes auditing is enabled, then the event ID 5136 will be generated. From a defensive point of view, if a user who is not expected to have the right to modify a GPO suddenly appears here, then a red flag should be raised.
+
+ ```
+# Define filter for the last 15 minutes
+$TimeSpan = (Get-Date) - (New-TimeSpan -Minutes 15)
+
+# Search for event ID 5136 (GPO modified) in the past 15 minutes
+$Logs = Get-WinEvent -FilterHashtable @{LogName='Security';id=5136;StartTime=$TimeSpan} -ErrorAction SilentlyContinue |`
+Where-Object {$_.Properties[8].Value -match "CN={73C66DBB-81DA-44D8-BDEF-20BA2C27056D},CN=POLICIES,CN=SYSTEM,DC=EAGLE,DC=LOCAL"}
+
+
+if($Logs){
+    $emailBody = "Honeypot GPO '73C66DBB-81DA-44D8-BDEF-20BA2C27056D' was modified`r`n"
+    $disabledUsers = @()
+    ForEach($log in $logs){
+        If(((Get-ADUser -identity $log.Properties[3].Value).Enabled -eq $true) -and ($log.Properties[3].Value -notin $disabledUsers)){
+            Disable-ADAccount -Identity $log.Properties[3].Value
+            $emailBody = $emailBody + "Disabled user " + $log.Properties[3].Value + "`r`n"
+            $disabledUsers += $log.Properties[3].Value
+        }
+    }
+    # Send an alert via email - complete the command below
+    # Send-MailMessage
+    $emailBody
+}
+```
+
+## Credentials in Shares
