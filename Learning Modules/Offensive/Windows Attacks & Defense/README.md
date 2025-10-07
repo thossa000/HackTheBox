@@ -179,3 +179,44 @@ if($Logs){
 ```
 
 ## Credentials in Shares
+### Attack
+The first step is identifying what shares exist in a domain using PowerView's Invoke-ShareFinder. This function allows specifying that default shares should be filtered out (such as c$ and IPC$) and also check if the invoking user has access to the rest of the shares it finds. The final output contains a list of non-default shares that the current user account has at least read access to:
+```
+PS C:\Users\bob\Downloads> Invoke-ShareFinder -domain eagle.local -ExcludeStandard -CheckShareAccess
+```
+
+Because of the dollar sign, if we were to browse the server which contains the share using Windows Explorer, we would be presented with an empty list (shares such as C$ and IPC$ even though available by default, Explorer does not display them because of the dollar sign). However, since we have the UNC path from the output, if we browse to it, we will be able to see the contents inside the share.
+
+A few automated tools exist, such as SauronEye, which can parse a collection of files and pick up matching words. However, because there are few shares in the playground, we will take a more manual approach (Living Off the Land) and use the built-in command findstr for this attack. When running findstr, we will specify the following arguments:
+
+- /s forces to search the current directory and all subdirectories
+- /i ignores case in the search term
+- /m shows only the filename for a file that matches the term. 
+- The term that defines what we are looking for. Good candidates include pass, pw, and the NETBIOS name of the domain.
+```
+PS C:\Users\bob\Downloads> cd \\Server01.eagle.local\dev$
+PS Microsoft.PowerShell.Core\FileSystem::\\Server01.eagle.local\dev$> findstr /m /s /i "pass" *.bat
+PS Microsoft.PowerShell.Core\FileSystem::\\Server01.eagle.local\dev$> findstr /m /s /i "pass" *.cmd
+PS Microsoft.PowerShell.Core\FileSystem::\\Server01.eagle.local\dev$> findstr /m /s /i "pass" *.ini
+setup.ini
+PS Microsoft.PowerShell.Core\FileSystem::\\Server01.eagle.local\dev$> findstr /m /s /i "pass" *.config
+4\5\4\web.config
+```
+
+```
+PS Microsoft.PowerShell.Core\FileSystem::\\Server01.eagle.local\dev$> findstr /m /s /i "pw" *.config
+
+5\2\3\microsoft.config
+PS Microsoft.PowerShell.Core\FileSystem::\\Server01.eagle.local\dev$> findstr /s /i "pw" *.config
+5\2\3\microsoft.config:pw BANANANANANANANANANANANANNAANANANANAS
+```
+
+### Prevention
+The best practice to prevent these attacks is to lock down every share in the domain so there are no loose permissions.
+
+Technically, there is no way to prevent what users leave behind them in scripts or other exposed files, so performing regular scans (e.g., weekly) on AD environments to identify any new open shares or credentials exposed in older ones is necessary.
+
+### Detection
+A detection technique is discovering the one-to-many connections, for example, when Invoke-ShareFinder scans every domain device to obtain a list of its network shares. It would be abnormal for a workstation to connect to 100s or even 1000s of other devices simultaneously.
+
+## Credentials in Object Properties
