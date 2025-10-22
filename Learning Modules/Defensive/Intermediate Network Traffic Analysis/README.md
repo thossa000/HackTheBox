@@ -49,6 +49,7 @@ Some typical red flags indicative of ARP scanning are:
 
 ### Finding ARP Scanning
 If we were to open the related traffic capture file (ARP_Scan.pcapng) in Wireshark and apply the filter arp.opcode, we might observe the following:
+
 <img width="927" height="345" alt="image" src="https://github.com/user-attachments/assets/3507ef06-08ca-4381-8b6a-b9f510e19b85" />
 
 ARP requests are being propagated by a single host to all IP addresses in a sequential manner. This pattern is symptomatic of ARP scanning and is a common feature of widely-used scanners such as Nmap. Furthermore, we may discern that active hosts respond to these requests via their ARP replies. This could signal the successful execution of the information-gathering tactic by the attacker.
@@ -163,9 +164,13 @@ To conclusively ascertain whether this is an anomaly or an Airodump-ng error, fi
 Beacon analysis is crucial in differentiating between genuine and fraudulent access points. One of the initial places to start is the Robust Security Network (RSN) information. This data communicates valuable information to clients about the supported ciphers, among other things.
 
 Suppose we wish to examine our legitimate access point's RSN information.
+
 <img width="731" height="425" alt="image" src="https://github.com/user-attachments/assets/c5ae306c-2da2-46e8-bc5b-fe3ba829a9c5" />
+
 It would indicate that WPA2 is supported with AES and TKIP with PSK as its authentication mechanism. However, when we switch to the illegitimate access point's RSN information, we may find it conspicuously missing.
+
 <img width="622" height="211" alt="image" src="https://github.com/user-attachments/assets/581272ce-4a76-4749-b0ee-3e93b4397740" />
+
 In most instances, a standard evil-twin attack will exhibit this characteristic. Nevertheless, we should always probe additional fields for discrepancies. For example, an attacker might employ the same cipher that our access point uses, making the detection of this attack more challenging. Under such circumstances, we could explore other aspects of the beacon frame, such as vendor-specific information, which is likely absent from the attacker's access point.
 
 ### Finding a Fallen User
