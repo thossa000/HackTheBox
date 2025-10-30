@@ -109,3 +109,7 @@ root@ubuntu:/var/log/suricata# cat http.log
 ```
 
 ## Suricata Rule Development Part 1
+Samplee rule:
+```
+action protocol from_ip port -> to_ip port (msg:"Known malicious behavior, possible X malware infection"; content:"some thing"; content:"some other thing"; sid:10000001; rev:1;)
+```
