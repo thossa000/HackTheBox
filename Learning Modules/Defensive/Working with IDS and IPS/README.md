@@ -98,6 +98,94 @@ Reading JA3 hash digest for pcap files to create Suricata rules:
 ```
 ja3 -a --json /home/htb-student/pcaps/sliverenc.pcap
 ```
+## Snort Fundamentals
+Snort Operation Modes:
+
+- Inline IDS/IPS - give Snort the ability to block traffic if a particular packet warrants such an event.
+- Passive IDS - gives Snort the ability to observe and detect traffic on a network interface, but it prevents outright blocking of traffic.
+- Network-based IDS
+- Host-based IDS (however, Snort is not ideally a host-based IDS. We would recommend opting for more specialized tools for this.)
+
+Snort will infer the particular mode of operation based on the options used at the command line. For example, reading from a pcap file with the -r option or listening on an interface with -i will cause Snort to run in passive mode by default. If the DAQ supports inline, however, then users can specify the -Q flag to run Snort inline. One DAQ module that supports inline mode is afpacket, which is a module that gives Snort access to packets received on Linux network devices.
+
+### Snort Architecture
+In order for Snort to transition from a simple packet sniffer to a robust IDS, several key components were added: Preprocessor, Detection Engine, Logging and Alerting System, and various Output modules.
+
+- The packet sniffer (which includes the Packet Decoder) extracts network traffic, recognizing the structure of each packet. The raw packets that are collected are subsequently forwarded to the Preprocessors.
+- Preprocessors within Snort identify the type or behaviour of the forwarded packets. Snort has an array of Preprocessor plugins, like the HTTP plugin that distinguishes HTTP-related packets or the port_scan Preprocessor which identifies potential port scanning attempts based on predefined protocols, types of scans, and thresholds. After the Preprocessors have completed their task, information is passed to the Detection Engine. The configuration of these Preprocessors can be found within the Snort configuration file, snort.lua.
+- The Detection Engine compares each packet with a predefined set of Snort rules. If a match is found, information is forwarded to the Logging and Alerting System.
+- The Logging and Alerting System and Output modules are in charge of recording or triggering alerts as determined by each rule action. Logs are generally stored in syslog or unified2 formats or directly in a database. The Output modules are configured within the Snort configuration file, snort.lua.
+
+### Snort Configuration & Validating Snort's Configuration
+Snort 3 provides users with pre-configured files to facilitate a quick start. These default configuration files, namely snort.lua (principal configuration file) and snort_defaults.lua:
+
+- Network variables
+- Decoder configuration
+- Base detection engine configuration
+- Dynamic library configuration
+- Preprocessor configuration
+- Output plugin configuration
+- Rule set customization
+- Preprocessor and decoder rule set customization
+- Shared object rule set customization
+
+Use 'snort --help-modules' for help with enabling and tuning Snort modules.
+
+These modules are enabled and configured within the snort.lua configuration file as Lua table literals. If a module is initialized as an empty table, it implies that it is utilizing its predefined "default" settings. To view these default settings, you can utilize the following command.
+
+```
+thossa00@htb[/htb]$ snort --help-config arp_spoof
+```
+Passing (and validating) configuration files to Snort can be done as follows.
+```
+thossa00@htb[/htb]$ snort -c /root/snorty/etc/snort/snort.lua --daq-dir
+
+# Note: --daq-dir /usr/local/lib/daq is not required to pass and validate a configuration file. It is added so that we can replicate the command in this section's target.
+```
+
+### Snort Inputs
+By providing the name of the pcap file as an argument to the -r option in the command line, Snort will process the file accordingly.
+```
+thossa00@htb[/htb]$ sudo snort -c /root/snorty/etc/snort/snort.lua --daq-dir /usr/local/lib/daq -r /home/htb-student/pcaps/icmp.pcap
+```
+
+Snort also has the capability to listen on active network interfaces. To specify this behavior, you can utilize the -i option followed by the names of the interfaces on which Snort should run.
+```
+thossa00@htb[/htb]$ sudo snort -c /root/snorty/etc/snort/snort.lua --daq-dir /usr/local/lib/daq -i ens160
+```
+
+### Snort Rules
+Snort rules, which resemble Suricata rules, are composed of a rule header and rule options. The most recent Snort rules can be obtained from the Snort website or the Emerging Threats website.
+
+In Snort deployments, we have flexibility in managing rules. It's possible to place rules (for example, local.rules residing at /home/htb-student) directly within the snort.lua configuration file using the ips module as follows.
+```
+thossa00@htb[/htb]$ sudo vim /root/snorty/etc/snort/snort.lua
+
+----SNIP----
+ips =
+{
+    -- use this to enable decoder and inspector alerts
+    --enable_builtin_rules = true,
+
+    -- use include for rules files; be sure to set your path
+    -- note that rules files can include other rules files
+    -- (see also related path vars at the top of snort_defaults.lua)
+
+    { variables = default_variables, include = '/home/htb-student/local.rules' }
+}
+```
+Then, the "included" rules will be automatically loaded.
+
+Alternatively we can load snort rules from the terminal:
+- For a single rules file, we can use the -R option followed by the path to the rules file. This allows us to specify a specific rules file to be utilized by Snort.
+- To include an entire directory of rules files, we can use the --rule-path option followed by the path to the rules directory. This enables us to provide Snort with a directory containing multiple rules files.
+
+### Snort Outputs
+
+
+
+
+
 
 ## Zeek Fundamentals
 ### Zeek's Operation Modes
