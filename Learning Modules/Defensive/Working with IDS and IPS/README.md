@@ -182,10 +182,32 @@ Alternatively we can load snort rules from the terminal:
 
 ### Snort Outputs
 
+Basic Statistics: Upon shutdown, Snort generates various counts based on the configuration and processed traffic. This includes:
+- Packet Statistics: It includes information from the DAQ and decoders, such as the number of received packets and UDP packets.
+- Module Statistics: Each module keeps track of activity through peg counts, indicating the frequency of observed or performed actions. Examples include the count of processed HTTP GET requests and trimmed TCP reset packets.
+- File Statistics: This section provides a breakdown of file types, bytes, and signatures.
+- Summary Statistics: It encompasses the total runtime for packet processing, packets per second, and, if configured, profiling data.
 
+Alerts: When rules are configured, it is necessary to enable alerting (using the -A option) to view the details of detection events. There are multiple types of alert outputs available, including:
+1. -A cmg: This option combines -A fast -d -e and displays alert information along with packet headers and payload.
+2. -A u2: This option is equivalent to -A unified2 and logs events and triggering packets in a binary file, which can be used for post-processing with other tools.
+3. -A csv: This option outputs fields in comma-separated value format, providing customization options and facilitating pcap analysis.
 
-
-
+To discover the available alert types:
+```
+thossa00@htb[/htb]$ snort --list-plugins | grep logger
+logger::alert_csv v0 static
+logger::alert_fast v0 static
+logger::alert_full v0 static
+logger::alert_json v0 static
+logger::alert_syslog v0 static
+logger::alert_talos v0 static
+logger::alert_unixsock v0 static
+logger::log_codecs v0 static
+logger::log_hext v0 static
+logger::log_pcap v0 static
+logger::unified2 v0 static
+```
 
 ## Zeek Fundamentals
 ### Zeek's Operation Modes
