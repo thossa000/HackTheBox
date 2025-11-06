@@ -209,6 +209,31 @@ logger::log_pcap v0 static
 logger::unified2 v0 static
 ```
 
+## Snort Rule Development
+Snort rules resemble Suricata rules. They are composed of a rule header and rule options.
+
+### Snort Rule Development Example 1: Detecting Ursnif (Inefficiently)
+```
+alert tcp any any -> any any (msg:"Possible Ursnif C2 Activity"; flow:established,to_server; content:"/images/", depth 12; content:"_2F"; content:"_2B"; content:"User-Agent|3a 20|Mozilla/4.0 (compatible|3b| MSIE 8.0|3b| Windows NT"; content:!"Accept"; content:!"Cookie|3a|"; content:!"Referer|3a|"; sid:1000002; rev:1;)
+```
+
+- flow:established,to_server; ensures that this rule only matches established TCP connections where data is flowing from the client to the server.
+- content:"/images/", depth 12; instructs Snort to look for the string /images/ within the first 12 bytes of the packet payload.
+- content:"_2F"; and content:"_2B"; direct Snort to search for the strings _2F and _2B anywhere in the payload.
+- content:"User-Agent|3a 20|Mozilla/4.0 (compatible|3b| MSIE 8.0|3b| Windows NT"; is looking for a specific User-Agent. The |3a 20| and |3b| in the rule are hexadecimal representations of the : and ; characters respectively.
+- content:!"Accept"; content:!"Cookie|3a|"; content:!"Referer|3a|"; look for the absence of certain standard HTTP headers, such as Accept, Cookie: and Referer:. The ! indicates negation.
+
+### Snort Rule Development Example 2: Detecting Cerber
+```
+alert udp $HOME_NET any -> $EXTERNAL_NET any (msg:"Possible Cerber Check-in"; dsize:9; content:"hi", depth 2, fast_pattern; pcre:"/^[af0-9]{7}$/R"; detection_filter:track by_src, count 1, seconds 60; sid:2816763; rev:4;)
+```
+
+- $HOME_NET any -> $EXTERNAL_NET any signifies the rule applies to any UDP traffic going from any port in the home network to any port on external networks.
+- dsize:9;: This is a condition that restricts the rule to UDP datagrams that have a payload data size of exactly 9 bytes.
+- content:"hi", depth 2, fast_pattern;: This checks the payload's first 2 bytes for the string hi. The fast_pattern modifier makes the pattern matcher search for this pattern before any others in the rule, optimizing the rule's performance.
+- pcre:"/^[af0-9]{7}$/R";: This stands for Perl Compatible Regular Expressions. The rule is looking for seven hexadecimal characters (from the set a-f and 0-9) starting at the beginning of the payload (after the hi), and this should be the complete payload (signified by the $ end anchor).
+- detection_filter:track by_src, count 1, seconds 60;: The detection_filter keyword in Snort rule language is used to suppress alerts unless a certain threshold of matched events occurs within a specified time frame. In this rule, the filter is set to track by source IP (by_src), with a count of 1 and within a time frame of 60 seconds. This means that the rule will trigger an alert only if it matches more than one event (specifically, more than count events which is 1 here) from the same source IP address within 60 seconds.
+
 ## Zeek Fundamentals
 ### Zeek's Operation Modes
 Zeek operates in the following modes:
@@ -237,3 +262,66 @@ Among the diverse array of logs Zeek produces, some familiar ones include:
 - smtp.log: This log covers SMTP transactions, such as sender and recipient details.
 
 It's noteworthy to mention that Zeek, in its standard configuration, applies gzip compression to log files every hour. The older logs are then transferred into a directory named in the YYYY-MM-DD format. When dealing with these compressed logs, alternative tools like gzcat for printing logs or zgrep for searching within logs can come in handy. However, Zeek also provides a specialized tool known as zeek-cut for handling log files. This utility accepts Zeek log files via standard input using pipelines or stream redirections and then delivers the specified columns to the standard output.
+
+## Intrusion Detection With Zeek
+
+```
+thossa00@htb[/htb]$ /usr/local/zeek/bin/zeek -C -r /home/htb-student/pcaps/psempire.pcap
+
+cat conn.log
+```
+
+### Intrusion Detection With Zeek Example 1: Detecting Beaconing Malware
+Beaconing is a process by which malware communicates with its command and control (C2) server to receive instructions or exfiltrate data. It's usually characterized by a consistent or patterned interval of outbound communications.
+
+By analyzing connection logs (conn.log), we can look for patterns in outbound traffic. These patterns can include repetitive connections to the same destination IP or domain, constant data size in the sent data, or the connection timing. These are all indicative of potential beaconing behavior. Anomalies can be further explored using Zeek scripts specifically designed to spot beaconing patterns.
+
+If we look carefully at conn.log we will notice connections being made to 51.15.197.127:80 approximately every 5 seconds, which is indicative of a malware beaconing.
+
+### Intrusion Detection With Zeek Example 2: Detecting DNS Exfiltration
+Zeek is also useful when we suspect data exfiltration. Data exfiltration can be difficult to detect as it often mimics normal network traffic. However, with Zeek, we can analyze our network traffic at a deeper level.
+
+Zeek's files.log can be used to identify large amounts of data being sent to an unusual external destination, or over non-standard ports, which may suggest data exfiltration. The http.log and dns.log can also be utilized to identify potential covert exfiltration channels, such as DNS tunneling or HTTP POST requests to a suspicious domain.
+```
+thossa00@htb[/htb]$ /usr/local/zeek/bin/zeek -C -r /home/htb-student/pcaps/dnsexfil.pcapng
+
+thossa00@htb[/htb]$ cat dns.log
+
+thossa00@htb[/htb]$ cat dns.log | /usr/local/zeek/bin/zeek-cut query | cut -d . -f1-7
+```
+### Intrusion Detection With Zeek Example 3: Detecting TLS Exfiltration
+```
+thossa00@htb[/htb]$ /usr/local/zeek/bin/zeek -C -r /home/htb-student/pcaps/tlsexfil.pcap
+
+thossa00@htb[/htb]$ cat conn.log
+
+thossa00@htb[/htb]$ cat conn.log | /usr/local/zeek/bin/zeek-cut id.orig_h id.resp_h orig_bytes | sort | grep -v -e '^$' | grep -v '-' | datamash -g 1,2 sum 3 | sort -k 3 -rn | head -10
+```
+
+- cat conn.log: This command is used to read the content of the conn.log file. The conn.log file, generated by Zeek, provides a record of all connections that have taken place in our network.
+- /usr/local/zeek/bin/zeek-cut id.orig_h id.resp_h orig_bytes: In this case, we're extracting the id.orig_h (originating host), id.resp_h (responding host), and orig_bytes (number of bytes sent by the originating host) fields.
+- sort: This command is used to sort the output from the previous command. By default, sort will arrange the lines in ascending order based on the contents of the first field (in this case id.orig_h).
+- grep -v -e '^$': This command filters out any empty lines. The -v option inverts the selection, the -e option allows for a regular expression, and '^$'` matches empty lines.
+- grep -v '-': This command filters out lines containing a dash -. In the context of Zeek logs, a dash often represents a missing value or an undefined field.
+- datamash -g 1,2 sum 3: datamash is a command-line tool that performs basic numeric, textual, and statistical operations. The -g 1,2 option groups the output by the first two fields (the IP addresses of the originating and responding hosts), and sum 3 computes the sum of the third field (the number of bytes sent) for each group.
+- sort -k 3 -rn: This command sorts the output of the previous command in descending order (-r) based on the numerical value (-n) of the third field (-k 3), which is the sum of orig_bytes for each pair of IP addresses.
+- head -10: This command is used to limit the output to the top 10 lines, thus showing the top 10 pairs of IP addresses by total bytes sent from the originating host to the responding host.
+
+
+### Intrusion Detection With Zeek Example 4: Detecting PsExec
+PsExec, a part of the Sysinternals Suite, is frequently used for remote administration within Active Directory environments. Given its powerful capabilities, it's no surprise that adversaries often prefer PsExec when they carry out remote code execution attacks.
+
+To illustrate a typical attack sequence, let's consider this: an attacker transfers the binary file PSEXESVC.exe to a target machine using the ADMIN$ share, a special shared folder used in Windows networks, via the SMB (Server Message Block) protocol. Following this, the attacker remotely launches this file as a temporary service by utilizing the IPC$ share, another special shared resource that enables Inter-Process Communication.
+
+We can identify SMB transfers and the typical use of PsExec using Zeek's smb_files.log, dce_rpc.log, and smb_mapping.log as follows.
+
+```
+thossa00@htb[/htb]$ /usr/local/zeek/bin/zeek -C -r /home/htb-student/pcaps/psexec_add_user.pcap
+
+thossa00@htb[/htb]$ cat smb_files.log
+thossa00@htb[/htb]$ cat dce_rpc.log
+thossa00@htb[/htb]$ cat smb_mapping.log
+```
+The temporary service creation is apparent in the last two logs above.
+
+The psexec_add_user.pcap file, which is located in the /home/htb-student/pcaps directory includes traffic related to typical PsExec usage.
