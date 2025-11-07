@@ -31,6 +31,10 @@ thossa00@htb[/htb]$ sudo vim /etc/suricata/suricata.yaml
 ### Suricata Outputs
 Suricata records a variety of data into logs that reside in the /var/log/suricata directory by default. For us to access and manipulate these logs, we require root-level access. Among these logs, we find the eve.json, fast.log, and stats.log files, which provide invaluable insight into the network activity. Let's delve into each:
 
+```
+
+```
+
 1. eve.json: This file is Suricata's recommended output and contains JSON objects, each carrying diverse information such as timestamps, flow_id, event_type, and more. Try inspecting the content of old_eve.json residing at /var/log/suricata as follows.
 
 If we wish to filter out only alert events, for example, we can utilize the jq command-line JSON processor as follows.
@@ -80,7 +84,7 @@ root@ubuntu:/var/log/suricata# cat http.log
 ```
 
 ### Suricata Rule Development
-Samplee rule:
+Sample rule:
 ```
 action protocol from_ip port -> to_ip port (msg:"Known malicious behavior, possible X malware infection"; content:"some thing"; content:"some other thing"; sid:10000001; rev:1;)
 ```
