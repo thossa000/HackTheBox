@@ -6,6 +6,8 @@ Brief notes on the HackTheBox Acedemy learning module, Intermediate Network Traf
 wget -O file.zip 'https://academy.hackthebox.com/storage/resources/pcap_files.zip' && mkdir tempdir && unzip file.zip -d tempdir && mkdir -p pcaps && mv tempdir/Intermediate_Network_Traffic_Analysis/* pcaps/ && rm -r tempdir file.zip
 ```
 
+# Link Layer Attacks
+
 ## ARP Spoofing & Abnormality Detection
 The Address Resolution Protocol (ARP) has been a longstanding utility exploited by attackers to launch man-in-the-middle and denial-of-service attacks, among others.
 
@@ -186,7 +188,7 @@ If we detect ARP requests emanating from a client device connected to the suspic
 ### Finding Rogue Access Points
 On the other hand, detecting rogue access points can often be a simple task of checking our network device lists. In the case of hotspot-based rogue access points (such as Windows hotspots), we might scrutinize wireless networks in our immediate vicinity. If we encounter an unrecognizable wireless network with a strong signal, particularly if it lacks encryption, this could indicate that a user has established a rogue access point to navigate around our perimeter controls.
 
-
+# Detecting Network Abnormalities
 ## Fragmentation Attacks
 1. Length - IP header length: This field contains the overall length of the IP header.
 2. Total Length - IP Datagram/Packet Length: This field specifies the entire length of the IP packet, including any relevant data.
@@ -230,3 +232,258 @@ Packets: 266239 : Displayed: 66535
 ```
 
 ## IP Source & Destination Spoofing Attacks
+We should always consider the following when analyzing these fields for our traffic analysis efforts:
+
+- The Source IP Address should always be from our subnet - If we notice that an incoming packet has an IP source from outside of our local area network, this can be an indicator of packet crafting.
+- The Source IP for outgoing traffic should always be from our subnet - If the source IP is from a different IP range than our own local area network, this can be an indicator of malicious traffic that is originating from inside our network.
+
+An attacker might conduct these packet crafting attacks towards the source and destination IP addresses for many different reasons or desired outcomes. Here are a few that we can look for:
+
+- Decoy Scanning - In an attempt to bypass firewall restrictions, an attacker might change the source IP of packets to enumerate further information about a host in another network segment. Through changing the source to something within the same subnet as the target host, the attacker might succeed in firewall evasion.
+- Random Source Attack DDoS - Through random source crafting an attacker might be able to send tons of traffic to the same port on the victim host. This in many cases, is used to exhaust resources of our network controls or on the destination host.
+- LAND Attacks - LAND Attacks operate similarly to Random Source denial-of-service attacks in the nature that the source address is set to the same as the destination hosts. In doing so the attacker might be able to exhaust network resources or cause crashes on the target host.
+- SMURF Attacks - Similar to LAND and Random Source attacks, SMURF attacks work through the attacker sending large amounts of ICMP packets to many different hosts. However, in this case the source address is set to the victim machines, and all of the hosts which receive this ICMP packet respond with an ICMP reply causing resource exhaustion on the crafted source address (victim).
+- Initialization Vector Generation - In older wireless networks such as wired equivalent privacy, an attacker might capture, decrypt, craft, and re-inject a packet with a modified source and destination IP address in order to generate initialization vectors to build a decryption table for a statistical attack. These can be seen in nature by noticing an excessive amount of repeated packets between hosts.
+
+The attacks we will be exploring in this section derive from IP layer communications and not ARP poisoning.
+
+### Finding Decoy Scanning Attempts
+When an attacker wants to gather information, they might change their source address to be the same as another legitimate host, or in some cases entirely different from any real host. This is to attempt to evade IDS/Firewall controls, and it can be easily observed:
+
+- Initial Fragmentation from a fake address
+- Some TCP traffic from the legitimate source address
+
+A simple way that we can prevent this attack beyond just detecting it through our traffic analysis efforts is the following:
+
+- Have our IDS/IPS/Firewall act as the destination host would - In the sense that reconstructing the packets gives a clear indication of malicious activity.
+- Watch for connections started by one host, and taken over by another - The attacker after all has to reveal their true source address in order to see that a port is open. This is strange behavior and we can define our rules to prevent it.
+
+### Finding Random Source Attacks
+Related PCAP File(s):
+
+- ICMP_rand_source.pcapng - On the opposite side of things, we can begin to explore denial-of-service attacks through source and destination address spoofing. This can be done like the opposite of a SMURF attack, in which many hosts will ping one host which does not exist, and the pinged host will ping back all others and get no reply.
+  
+- ICMP_rand_source_larg_data.pcapng - We should also consider that attackers might fragment these random hosts communications in order to draw out more resource exhaustion.
+
+- TCP_rand_source_attacks.pcapng - LAND attacks, these attacks will be used by attackers to exhaust resources to one specific service on a port. Instead of spoofing the source address to be the same as the destination, the attacker might randomize them.
+
+### Finding Smurf Attacks
+SMURF Attacks are a notable distributed denial-of-service attack, in the nature that they operate through causing random hosts to ping the victim host back:
+
+- The attacker will send an ICMP request to live hosts with a spoofed address of the victim host
+- The live hosts will respond to the legitimate victim host with an ICMP reply
+- This may cause resource exhaustion on the victim host, sometimes attackers will include fragmentation and data on these ICMP requests to make the traffic volume larger.
+
+### Finding LAND Attacks
+LAND attacks operate through an attacker spoofing the source IP address to be the same as the destination. These denial-of-service attacks work through sheer volume of traffic and port re-use. Essentially, if all base ports are occupied, it makes real connections much more difficult to establish to our affected host.
+
+## TCP Handshake Abnormalities
+To initiate a TCP connection for whatever purpose the client first sends the machine it is attempting to connect to a TCP SYN request to begin the TCP connection.
+
+If this port is open, and in fact able to be connected to, the machine responds with a TCP SYN/ACK to acknowledge that the connection is valid and able to be used. However, we should consider all TCP flags
+|Flags|	Description
+|:-:|:-:|
+|URG (Urgent)|	This flag is to denote urgency with the current data in stream.
+|ACK (Acknowledgement)|	This flag acknowledges receipt of data.
+|PSH (Push)|	This flag instructs the TCP stack to immediately deliver the received data to the application layer, and bypass buffering.
+|RST (Reset)|	This flag is used for termination of the TCP connection.
+|SYN (Synchronize)|	This flag is used to establish an initial connection with TCP.
+|FIN (Finish)|	This flag is used to denote the finish of a TCP connection. It is used when no more data needs to be sent.
+|ECN (Explicit Congestion Notification)|	This flag is used to denote congestion within our network, it is to let the hosts know to avoid unnecessary re-transmissions.
+
+When we are performing our traffic analysis efforts we can look for the following strange conditions:
+
+- Too many flags of a kind or kinds - This could show us that scanning is occurring within our network.
+- The usage of different and unusual flags - Sometimes this could indicate a TCP RST attack, hijacking, or simply some form of control evasion for scanning.
+- Solo host to multiple ports, or solo host to multiple hosts - Easy enough, we can find scanning as we have done before by noticing where these connections are going from one host. In a lot of cases, we may even need to consider decoy scans and random source attacks.
+
+## TCP Connection Resets & Hijacking
+TCP does not provide the level of protection to prevent our hosts from having their connections terminated or hijacked by an attacker. As such, we might notice that a connection gets terminated by an RST packet, or hijacked through connection hijacking.
+
+This attack is a combination of a few conditions:
+
+- The attacker will spoof the source address to be the affected machine's
+- The attacker will modify the TCP packet to contain the RST flag to terminate the connection
+- The attacker will specify the destination port to be the same as one currently in use by one of our machines.
+
+As such, we might notice an excessive amount of packets going to one port. One way we can verify that this is indeed a TCP RST attack is through the physical address of the transmitter of these TCP RST packets. Suppose, the IP address 192.168.10.4 is registered to aa:aa:aa:aa:aa:aa in our network device list, and we notice an entirely different MAC sending these. However, it is worth noting that an attacker might spoof their MAC address in order to further evade detection. In this case, we could notice retransmissions and other issues.
+
+### TCP Connection Hijacking
+In this case the attacker will actively monitor the target connection they want to hijack.
+
+The attacker will then conduct sequence number prediction in order to inject their malicious packets in the correct order. During this injection they will spoof the source address to be the same as our affected machine.
+
+The attacker will need to block ACKs from reaching the affected machine in order to continue the hijacking. They do this either through delaying or blocking the ACK packets. As such, this attack is very commonly employed with ARP poisoning, and we might notice the following in our traffic analysis.
+
+<img width="300" height="50" alt="image" src="https://github.com/user-attachments/assets/89a7c484-0522-433f-b3ce-54abeb5cbe3d" />
+
+
+## ICMP Tunneling
+Tunneling is a technique employed by adversaries in order to exfiltrate data from one location to another. In many cases, we might notice this through the attacker possessing some command and control over one of our machines. One of the more common types is SSH tunneling. However, proxy-based, HTTP, HTTPs, DNS, and other types can be observed in similar ways.
+
+In the case of ICMP tunneling an attacker will append data they want to exfiltrate to the outside world or another host in the data field in an ICMP request. This is done with the intention to hide this data among a common protocol type like ICMP, and hopefully get lost within our network traffic.
+
+Since ICMP tunneling is primarily done through an attacker adding data into the data field for ICMP, we can find it by looking at the contents of data per request and reply.
+
+We can filter our wireshark capture to only ICMP requests and replies by entering ICMP into the filter bar. Normal ICMP requests send 48 bytes. However a malicious packet would have a larger size. We can look on the right side of our screen in Wireshark. In this case, we might notice something like a Username and Password being pinged to an external or internal host. This is a direct indication of ICMP tunneling.
+
+On the other hand, more advanced adversaries will utilize encoding or encryption when transmitting exfiltrated data, even in the case of ICMP tunneling. We could copy this value out of Wireshark and decode it within linux with the base64 utility.
+
+```
+thossa00@htb[/htb]$ echo 'VGhpcyBpcyBhIHNlY3VyZSBrZXk6IEtleTEyMzQ1Njc4OQo=' | base64 -d
+```
+
+### Preventing ICMP Tunneling
+
+- Block ICMP Requests - Simply, if ICMP is not allowed, attackers will not be able to utilize it.
+- Inspect ICMP Requests and Replies for Data - Stripping data, or inspecting data for malicious content on these requests and replies can allow us better insight into our environment, and the ability to prevent this data exfiltration.
+
+# Application Layer Attacks
+## HTTP/HTTPs Service Enumeration
+
+Many times, we might notice strange traffic to our web servers. In one of these cases, we might see that one host is generating excessive traffic with HTTP or HTTPs. Attackers like to abuse the transport layer many times, as the applications running on our servers might be vulnerable to different attacks.
+
+We can detect and identify fuzzing attempts through the following:
+
+- Excessive HTTP/HTTPs traffic from one host
+- Referencing our web server's access logs for the same behavior
+
+Attackers will attempt to fuzz our server to gather information before attempting to launch an attack. We might already have a Web Application Firewall in place to prevent this.
+
+### Finding Directory Fuzzing
+Directory fuzzing is used by attackers to find all possible web pages and locations in our web applications. We can find this during our traffic analysis by limiting our Wireshark view to only http traffic.
+
+Secondarily, if we wanted to remove the responses from our server, we could simply specify http.request
+
+Detect directory fuzzing:
+
+- A host will repeatedly attempt to access files on our web server which do not exist (response 404).
+- A host will send these in rapid succession.
+
+We can also always reference this traffic within our access logs on our web server. For Apache this would look like the following two examples. To use grep, we could filter like so:
+
+```
+thossa00@htb[/htb]$ cat access.log | grep "192.168.10.5"
+
+192.168.10.5 - - [18/Jul/2023:12:58:07 -0600] "GET /randomfile1 HTTP/1.1" 404 435 "-" "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)"
+192.168.10.5 - - [18/Jul/2023:12:58:07 -0600] "GET /frand2 HTTP/1.1" 404 435 "-" "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)"
+192.168.10.5 - - [18/Jul/2023:12:58:07 -0600] "GET /.bash_history HTTP/1.1" 404 435 "-" "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)"
+192.168.10.5 - - [18/Jul/2023:12:58:07 -0600] "GET /.bashrc HTTP/1.1" 404 435 "-" "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)"
+192.168.10.5 - - [18/Jul/2023:12:58:07 -0600] "GET /.cache HTTP/1.1" 404 435 "-" "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)"
+192.168.10.5 - - [18/Jul/2023:12:58:07 -0600] "GET /.config HTTP/1.1" 404 435 "-" "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)"
+192.168.10.5 - - [18/Jul/2023:12:58:07 -0600] "GET /.cvs HTTP/1.1" 404 435 "-" "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)"
+```
+
+### Finding Other Fuzzing Techniques
+Some of these could include fuzzing dynamic or static elements of our web pages such as id fields. Or in some other cases, the attacker might look for IDOR vulnerabilities in our site, especially if we are handling json parsing (changing return=max to return=min).
+
+To limit traffic to just one host, use the following filter:
+
+http.request and ((ip.src_host == <suspected IP>) or (ip.dst_host == <suspected IP>))
+
+Sometimes attackers will do the following to prevent detection
+
+- Stagger these responses across a longer period of time.
+- Send these responses from multiple hosts or source addresses.
+
+### Preventing Fuzzing Attempts
+- Maintain our virtualhost or web access configurations to return the proper response codes to throw off these scanners.
+- Establish rules to prohibit these IP addresses from accessing our server through our web application firewall.
+
+## Strange HTTP Headers
+
+We might not notice anything like fuzzing right away when analyzing our web server's traffic. However, this does not always indicate that nothing bad is happening. Instead, we can always look a little bit deeper. In order to do so, we might look for strange behavior among HTTP requests. Some of which are weird headers like:
+
+- Weird Hosts (Host: )
+- Unusual HTTP Verbs
+- Changed User Agents
+
+We can find any irregular Host headers with the following command. We specify our web server's real IP address to exclude any entries which use this real header. If we were to do this for an external web server, we could specify the domain name here.
+
+http.request and (!(http.host == "192.168.10.7"))
+
+Attackers will attempt to use different host headers to gain levels of access they would not normally achieve through the legitimate host. They may use proxy tools like burp suite or others to modify these before sending them to the server. In order to prevent successful exploitation beyond only detecting these events, we should always do the following:
+
+- Ensure that our virtualhosts or access configurations are setup correctly to prevent this form of access.
+- Ensure that our web server is up to date.
+
+### Analyzing Code 400s and Request Smuggling
+We might also notice some bad responses from our web server, like code 400s. These codes indicate a bad request from the client, so they can be a good place to start when detecting malicious actions via http/https. In order to filter for these, we can use the following:
+
+http.response.code == 400
+
+HTTP request smuggling or CRLF (Carriage Return Line Feed). Essentially, an attacker will try the following:
+
+```
+GET%20%2flogin.php%3fid%3d1%20HTTP%2f1.1%0d%0aHost%3a%20192.168.10.5%0d%0a%0d%0aGET%20%2fuploads%2fcmd2.php%20HTTP%2f1.1%0d%0aHost%3a%20127.0.0.1%3a8080%0d%0a%0d%0a%20HTTP%2f1.1 Host: 192.168.10.5
+```
+
+Which will be decoded by our server like this:
+
+```
+GET /login.php?id=1 HTTP/1.1
+Host: 192.168.10.5
+
+GET /uploads/cmd2.php HTTP/1.1
+Host: 127.0.0.1:8080
+
+ HTTP/1.1
+Host: 192.168.10.5
+```
+
+In cases where our configurations are vulnerable, the first request will go through, and the second request will as well shortly after. This can give an attacker levels of access that we would normally prohibit.
+
+Code 400s can give clear indication to adversarial actions during our traffic analysis efforts. Additionally, we would notice if an attacker is successful with this attack by finding the code 200 (success) in response to one of the requests which look like this.
+
+## Cross-Site Scripting (XSS) & Code Injection Detection
+Suppose we were looking through our HTTP requests and noticed that a good amount of requests were being sent to an internal "server," we did not recognize. This could be a clear indication of cross-site scripting.
+
+Cross-site scripting works through an attacker injecting malicious javascript or script code into one of our web pages through user input. When other users visit our web server their browsers will execute this code. Attackers in many cases will utilize this technique to steal tokens, cookies, session values, and more. 
+
+### Preventing XSS and Code Injection
+
+- Sanitize and handle user input in an acceptable manner.
+- Do not interpret user input as code.
+
+## SSL Renegotiation Attacks
+### HTTPs Breakdown
+Unlike HTTP, which is a stateless protocol, HTTPs incorporates encryption to provide security for web servers and clients. It does so with the following.
+
+- Transport Layer Security (Transport Layer Security)
+- Secure Sockets Layer (SSL)
+
+When a client establishes a HTTPs connection with a server, it conducts the following:
+
+1. Client Hello - The initial step is for the client to send its hello message to the server. This message contains information like what TLS/SSL versions are supported by the client, a list of cipher suites (aka encryption algorithms), and random data (nonces) to be used in the following steps.
+2. Server Hello - Responding to the client Hello, the server will send a Server Hello message. This message includes the server's chosen TLS/SSL version, its selected cipher suite from the client's choices, and an additional nonce.
+3. Certificate Exchange - The server then sends its digital certificate to the client, proving its identity. This certificate includes the server's public key, which the client will use to conduct the key exchange process.
+4. Key Exchange - The client then generates what is referred to as the premaster secret. It then encrypts this secret using the server's public key from the certificate and sends it on to the server.
+5. Session Key Derivation - Then both the client and the server use the nonces exchanged in the first two steps, along with the premaster secret to compute the session keys. These session keys are used for symmetric encryption and decryption of data during the secure connection.
+6. Finished Messages - In order to verify the handshake is completed and successful, and also that both parties have derived the same session keys, the client and server exchange finished messages. This message contains the hash of all previous handshake messages and is encrypted using the session keys.
+7. Secure Data Exchange - Now that the handshake is complete, the client and the server can now exchange data over the encrypted channel.
+
+As such, one of the more common HTTPs based attacks are SSL renegotiation, in which an attacker will negotiate the session to the lowest possible encryption standard.
+
+### Diving into SSL Renegotiation Attacks
+In order to filter to only handshake messages we can use this filter in Wireshark:
+
+ssl.record.content_type == 22
+
+The content type 22 specifies handshake messages only. 
+
+```
+_ws.col.info == "Client Hello"
+```
+
+When we are looking for SSL renegotiation attacks, we can look for the following.
+
+- Multiple Client Hellos - This is the most obvious sign of an SSL renegotiation attack. We will notice multiple client hellos from one client within a short period like above. The attacker repeats this message to trigger renegotiation and hopefully get a lower cipher suite.
+- Out of Order Handshake Messages - Simply put, sometimes we will see some out of order traffic due to packet loss and others, but in the case of SSL renegotiation some obvious signs would be the server receiving a client hello after completion of the handshake.
+
+An attacker might conduct this attack against us for the following reasons
+
+- Denial of Service - SSL renegotiation attacks consume a ton of resources on the server side, and as such it might overwhelm the server and cause it to be unresponsive.
+- SSL/TLS Weakness Exploitation - The attacker might attempt renegotiation to potentially exploit vulnerabilities with our current implementation of cipher suites.
+- Cryptanalysis - The attacker might use renegotiation as a part of an overall strategy to analyze our SSL/TLS patterns for other systems.
+
+## Peculiar DNS Traffic
