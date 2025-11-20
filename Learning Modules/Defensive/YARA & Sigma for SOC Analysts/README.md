@@ -19,3 +19,117 @@ The YARA scan engine, equipped with YARA modules, scans a set of files by compar
 - Detection of Files: When a file matches the patterns and conditions specified in a YARA rule, it is considered a detected file. The YARA scan engine records information about the match, such as the matched rule, the file path, and the offset within the file where the match occurred and provides output indicating the detection, which can be further processed, logged, or used for subsequent actions.
 
 ### YARA Rule Structure
+YARA rule example:
+
+```
+rule my_rule {
+
+    meta:
+        author = "Author Name"
+        description = "example rule"
+        hash = ""
+    
+    strings: 
+        $string1 = "test"
+        $string2 = "rule"
+        $string3 = "htb"
+
+    condition: 
+        all of them
+} 
+```
+
+Each rule in YARA starts with the keyword rule followed by a rule identifier. Rule identifiers are case sensitive where the first character cannot be a digit, and cannot exceed 128 characters.
+
+The following keywords are reserved and cannot be used as an identifier:
+
+<img width="1366" height="456" alt="image" src="https://github.com/user-attachments/assets/361d5d20-ca19-4da2-97e8-cea2827ed115" />
+
+The rule below instructs YARA to flag any file containing all three specified strings as Ransomware_WannaCry.
+
+```
+rule Ransomware_WannaCry {
+
+    meta:
+        author = "Madhukar Raina"
+        version = "1.0"
+        description = "Simple rule to detect strings from WannaCry ransomware"
+        reference = "https://www.virustotal.com/gui/file/ed01ebfbc9eb5bbea545af4d01bf5f1071661840480439c6e5babe8e080e41aa/behavior" 
+    
+    strings:
+        $wannacry_payload_str1 = "tasksche.exe" fullword ascii
+        $wannacry_payload_str2 = "www.iuqerfsodp9ifjaposdfjhgosurijfaewrwergwea.com" ascii
+        $wannacry_payload_str3 = "mssecsvc.exe" fullword ascii
+    
+    condition:
+        all of them
+}
+```
+
+Rule Header: The rule header provides metadata and identifies the rule. It typically includes:
+
+- Rule name: A descriptive name for the rule.
+- Rule tags: Optional tags or labels to categorize the rule.
+- Rule metadata: Additional information such as author, description, and creation date.
+
+```
+rule Ransomware_WannaCry {
+    meta:
+  ...
+}  
+```
+
+Rule Meta: The rule meta section allows for the definition of additional metadata for the rule. This metadata can include information about the rule's author, references, version, etc.
+
+```
+rule Ransomware_WannaCry {
+    meta:
+        author = "Madhukar Raina"
+        version = "1.0"
+        description = "Simple rule to detect strings from WannaCry ransomware"
+        reference = 	"https://www.virustotal.com/gui/file/ed01ebfbc9eb5bbea545af4d01bf5f1071661840480439c6e5babe8e080e41aa/behavior" 
+    ...
+}
+```
+
+Rule Body: The rule body contains the patterns or indicators to be matched within the files. This is where the actual detection logic is defined.
+
+```
+rule Ransomware_WannaCry {
+
+    ...    
+
+    strings:
+        $wannacry_payload_str1 = "tasksche.exe" fullword ascii
+        $wannacry_payload_str2 = "www.iuqerfsodp9ifjaposdfjhgosurijfaewrwergwea.com" ascii
+        $wannacry_payload_str3 = "mssecsvc.exe" fullword ascii
+
+    ...
+
+}
+```
+
+Rule Conditions: Rule conditions define the context or characteristics of the files to be matched. Conditions can be based on file properties, strings, or other indicators. Conditions are specified within the condition section.
+
+```
+rule Ransomware_WannaCry {
+    ...
+
+    condition:
+        all of them
+}
+```
+In this YARA rule, the condition section simply states all of them, which means that all the strings defined in the rule must be present for the rule to trigger a match.
+
+One more example of a condition which specifies that the file size of the analyzed file must be less than 100 kilobytes (KB).
+```
+ condition:
+        filesize < 100KB and (uint16(0) == 0x5A4D or uint16(0) == 0x4D5A)
+```
+This condition also specifies that the first 2 bytes of the file must be either 0x5A4D (ASCII MZ) or 0x4D5A (ASCII ZM), by using uint16(0):
+```
+uint16(offset)
+```
+
+- uint16: This indicates the data type to be extracted, which is a 16-bit unsigned integer (2 bytes).
+- (0): The value inside the parentheses represents the offset from where the extraction should start. In this case, 0 means the function will extract the 16-bit value starting from the beginning of the data being scanned. The condition uses uint16(0) to compare the first 2 bytes of the file with specific values.
