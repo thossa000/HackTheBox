@@ -596,3 +596,66 @@ rule dns_wannacry_domain {
 ```
 
 ## Hunting Evil with YARA (Linux Edition)
+### Hunting for Evil Within Memory Images with YARA
+
+YARA's memory image scanning mirrors its disk-based counterpart. Let's map out the process:
+
+- Create YARA Rules: Either develop bespoke YARA rules or lean on existing ones that target memory-based malware traits or dubious behaviors.
+- Compile YARA Rules: Compile the YARA rules into a binary format using the yarac tool (YARA Compiler). This step creates a file containing the compiled YARA rules with a .yrc extension. This step is optional, as we can use the normal rules in text format as well. While it is possible to use YARA in its human-readable format, compiling the rules is a best practice when deploying YARA-based detection systems or working with a large number of rules to ensure optimal performance and effectiveness. Also, compiling rules provides some level of protection by converting them into binary format, making it harder for others to view the actual rule content.
+- Obtain Memory Image: Capture a memory image using tools such as DumpIt, MemDump, Belkasoft RAM Capturer, Magnet RAM Capture, FTK Imager, and LiME (Linux Memory Extractor).
+- Memory Image Scanning with YARA: Use the yara tool and the compiled YARA rules to scan the memory image for possible matches.
+
+Here's an example command for YARA-based memory scanning:
+
+```
+thossa00@htb[/htb]$ yara /home/htb-student/Rules/yara/wannacry_artifacts_memory.yar /home/htb-student/MemoryDumps/compromised_system.raw --print-strings
+```
+
+The Volatility framework is a powerful open-source memory forensics tool used to analyze memory images from various operating systems. YARA can be integrated into the Volatility framework as a plugin called yarascan allowing for the application of YARA rules to memory analysis.
+
+### Single Pattern YARA Scanning Against a Memory Image
+
+In this case, we'll specify a YARA rule pattern directly in the command-line which is searched within the memory image by the yarascan plugin of Volatility. The string should be enclosed in quotes (") after the -U option. This is useful when we have a specific YARA rule or pattern that we want to apply without creating a separate YARA rules file.
+
+From previous analysis we know that WannaCry malware attempt to connect to the following hard-coded URI www.iuqerfsodp9ifjaposdfjhgosurijfaewrwergwea.com
+
+Introducing this pattern within the command line using -U "www.iuqerfsodp9ifjaposdfjhgosurijfaewrwergwea.com" prompts a search within the compromised_system.raw memory image.
+
+```
+thossa00@htb[/htb]$ vol.py -f /home/htb-student/MemoryDumps/compromised_system.raw yarascan -U "www.iuqerfsodp9ifjaposdfjhgosurijfaewrwergwea.com"
+```
+
+### Multiple YARA Rule Scanning Against a Memory Image
+When we have multiple YARA rules or a set of complex rules that we want to apply to a memory image, we can use the -y option followed by the rule file path in the Volatility framework, which allows us to specify the path to a YARA rules file. The YARA rules file (wannacry_artifacts_memory.yar in our case) should contain one or more YARA rules in a separate file.
+
+```
+thossa00@htb[/htb]$ cat /home/htb-student/Rules/yara/wannacry_artifacts_memory.yar
+rule Ransomware_WannaCry {
+
+    meta:
+        author = "Madhukar Raina"
+        version = "1.1"
+        description = "Simple rule to detect strings from WannaCry ransomware"
+        reference = "https://www.virustotal.com/gui/file/ed01ebfbc9eb5bbea545af4d01bf5f1071661840480439c6e5babe8e080e41aa/behavior"
+
+
+    strings:
+        $wannacry_payload_str1 = "tasksche.exe" fullword ascii
+        $wannacry_payload_str2 = "www.iuqerfsodp9ifjaposdfjhgosurijfaewrwergwea.com" ascii
+        $wannacry_payload_str3 = "mssecsvc.exe" fullword ascii
+        $wannacry_payload_str4 = "diskpart.exe" fullword ascii
+        $wannacry_payload_str5 = "lhdfrgui.exe" fullword ascii
+
+    condition:
+        3 of them
+```
+
+```
+thossa00@htb[/htb]$ vol.py -f /home/htb-student/MemoryDumps/compromised_system.raw yarascan -y /home/htb-student/Rules/yara/wannacry_artifacts_memory.yar
+```
+We can see in the results that the yarascan plugin in Volatility is able to find the process svchost.exe with PID 1576 in the memory image of the compromised system.
+
+In summary, the -U option allows us to directly specify a YARA rule string within the command-line, while the -y option is used to specify the path to a file containing one or more YARA rules.
+
+## Hunting Evil with YARA (Web Edition)
+Unpac.Me is tool tailored for malware unpacking. The great thing about Unpac.Me is that it grants us the capability to run our YARA rules over their amassed database of malware submissions.
