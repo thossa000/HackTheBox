@@ -27,3 +27,45 @@ The basic steps for performing a forensic investigation are:
 - Report and Documentation
 
 ## Windows Forensics Overview
+### Execution Artifacts
+
+|Artifact	|Location/Registry Key	|Data Stored|
+|:-:|:-:|:-:|
+|Prefetch Files |C:\Windows\Prefetch|	Metadata about executed applications (file paths, timestamps, execution count)
+Shimcache|	Registry: HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Session Manager\AppCompatCache|	Program execution details (file paths, timestamps, flags)
+Amcache|	C:\Windows\AppCompat\Programs\Amcache.hve (Binary Registry Hive)|	Application details (file paths, sizes, digital signatures, timestamps)
+UserAssist|	Registry: HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\UserAssist|	Executed program details (application names, execution counts, timestamps)
+RunMRU Lists|	Registry: HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\RunMRU|	Recently executed programs and their command lines
+Jump Lists|	User-specific folders (e.g., %AppData%\Microsoft\Windows\Recent)|	Recently accessed files, folders, and tasks associated with applications
+Shortcut (LNK) Files|	Various locations (e.g., Desktop, Start Menu)|	Target executable, file paths, timestamps, user interactions
+Recent Items|	User-specific folders (e.g., %AppData%\Microsoft\Windows\Recent)|	Recently accessed files
+Windows Event Logs|	C:\Windows\System32\winevt\Logs|	Various event logs containing process creation, termination, and other events
+
+### Windows Persistence Artifacts
+
+Example of Autorun keys used for persistence:
+
+1. Run/RunOnce Keys
+
+- HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Run
+- HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\RunOnce
+- HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Run
+- HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\RunOnce
+- HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Policies\
+
+2. Keys used by WinLogon Process
+
+- HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon
+- HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon\Shell
+
+3. Startup Keys
+
+- HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders
+- HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders
+- HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders
+- HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\User
+
+
+To scrutinize scheduled tasks, we should navigate to C:\Windows\System32\Tasks and examine the XML files' content.
+
+Malicious actors often tamper with or craft rogue services to ensure persistence and retain unauthorized access. The registry location to keep an eye on is: HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services.
