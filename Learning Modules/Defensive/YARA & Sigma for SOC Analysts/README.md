@@ -659,3 +659,51 @@ In summary, the -U option allows us to directly specify a YARA rule string withi
 
 ## Hunting Evil with YARA (Web Edition)
 Unpac.Me is tool tailored for malware unpacking. The great thing about Unpac.Me is that it grants us the capability to run our YARA rules over their amassed database of malware submissions.
+
+## Sigma and Sigma Rules
+
+### Usages of Sigma
+
+- Universal Log Analytics Tool: We can write detection rules once and then convert them to various SIEM and log analytics tool formats, sparing us the repetitive task of rewriting logic across different platforms.
+- Community-driven Rule Sharing: With Sigma, we have the ability to tap into a community that regularly contributes and shares their detection rules. This ensures that we constantly update and refine our detection mechanisms.
+- Incident Response: Sigma aids in incident response by enabling analysts to quickly search and analyze logs for specific patterns or indicators.
+- Proactive Threat Hunting: We can use Sigma rules for proactive threat hunting sessions. By leveraging specific patterns, we can comb through our datasets to pinpoint anomalies or signs of adversarial activity.
+- Seamless Integration with Automation Tools: By converting Sigma rules into appropriate formats, we can seamlessly integrate them with our SOAR platforms and other automation tools, enabling automated responses based on specific detections.
+- Customization for Specific Environments: The flexibility of Sigma rules means that we can tailor them according to the unique characteristics of our environment. Custom rules can address the specific threats or scenarios we're concerned about.
+- Gap Identification: By aligning our rule set with the broader community, we can perform gap analysis, identifying areas where our detection capabilities might need enhancement.
+
+### How Does it Work?
+
+Sigma rules are written in YAML. Each Sigma rule describes a particular pattern of log events which might correlate with malicious activity. The rule encompasses a title, description, log source, and the pattern itself.
+
+With sigmac, we can take a rule written in the Sigma format and translate it for ElasticSearch, QRadar, Splunk, and many more. pySigma is increasingly becoming the go-to option for rule translation, as sigmac is now considered obsolete.
+
+### Sigma Rule Structure
+
+<img width="483" height="563" alt="image" src="https://github.com/user-attachments/assets/60a81ee7-bedf-4107-8fe2-b1758899e3c0" />
+
+Example:
+```
+title: Potential LethalHTA Technique Execution 
+id: ed5d72a6-f8f4-479d-ba79-02f6a80d7471 
+status: test 
+description: Detects potential LethalHTA technique where "mshta.exe" is spawned by an "svchost.exe" process
+references:
+    - https://codewhitesec.blogspot.com/2018/07/lethalhta.html
+author: Markus Neis 
+date: 2018/06/07 
+tags: 
+    - attack.defense_evasion 
+    - attack.t1218.005 
+logsource: 
+    category: process_creation  
+    product: windows
+detection:
+    selection: 
+        ParentImage|endswith: '\svchost.exe'
+        Image|endswith: '\mshta.exe'
+    condition: selection
+falsepositives: 
+    - Unknown
+level: high
+```
