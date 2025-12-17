@@ -707,3 +707,30 @@ falsepositives:
     - Unknown
 level: high
 ```
+
+## Hunting Evil with Sigma (Chainsaw)
+Chainsaw is a freely available tool designed to swiftly pinpoint security threats within Windows Event Logs. This tool enables efficient keyword-based event log searches and is equipped with integrated support for Sigma detection rules as well as custom Chainsaw rules.
+
+Chainsaw with -h flag to see the help menu.
+```
+PS C:\Tools\chainsaw> .\chainsaw_x86_64-pc-windows-msvc.exe -h
+```
+```
+PS C:\Tools\chainsaw> .\chainsaw_x86_64-pc-windows-msvc.exe hunt C:\Events\YARASigma\lab_events_3.evtx -s C:\Rules\sigma\proc_creation_win_powershell_abnormal_commandline_size.yml --mapping .\mappings\sigma-event-logs-all-new.yml
+```
+
+## Sigma Rules (Splunk)
+This Sigma rule detects adversaries leveraging the MiniDump export function of comsvcs.dll via rundll32 to perform a memory dump from LSASS.
+
+We can translate this rule into a Splunk search with sigmac (available at C:\Tools\sigma-0.21\tools) as follows.
+```
+PS C:\Tools\sigma-0.21\tools> python sigmac -t splunk C:\Tools\chainsaw\sigma\rules\windows\process_access\proc_access_win_lsass_dump_comsvcs_dll.yml -c .\config\splunk-windows.yml
+(TargetImage="*\\lsass.exe" SourceImage="C:\\Windows\\System32\\rundll32.exe" CallTrace="*comsvcs.dll*")
+```
+
+This Sigma rule detects notepad.exe spawning a suspicious child process.
+```
+PS C:\Tools\sigma-0.21\tools> python sigmac -t splunk C:\Rules\sigma\proc_creation_win_notepad_susp_child.yml -c .\config\splunk-windows.yml
+(ParentImage="*\\notepad.exe" (Image="*\\powershell.exe" OR Image="*\\pwsh.exe" OR Image="*\\cmd.exe" OR Image="*\\mshta.exe" OR Image="*\\cscript.exe" OR Image="*\\wscript.exe" OR Image="*\\taskkill.exe" OR Image="*\\regsvr32.exe" OR Image="*\\rundll32.exe" OR Image="*\\calc.exe"))
+```
+
