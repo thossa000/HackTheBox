@@ -51,3 +51,10 @@ index=main earliest=1690280680 latest=1690289489 source="WinEventLog:Security" E
 | bin span=15m _time
 | stats values(user) as Users, dc(user) as dc_user by src, Source_Network_Address, dest, EventCode, Failure_Reason
 ```
+## Detecting RDP Brute Force Attacks
+```
+index="rdp_bruteforce" sourcetype="bro:rdp:json"
+| bin _time span=5m
+| stats count values(cookie) by _time, id.orig_h, id.resp_h
+| where count>30
+```
