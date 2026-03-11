@@ -58,3 +58,85 @@ index="rdp_bruteforce" sourcetype="bro:rdp:json"
 | stats count values(cookie) by _time, id.orig_h, id.resp_h
 | where count>30
 ```
+## Detecting Responder-like Attacks - LLMNR/NBT-NS/mDNS Poisoning
+```
+index=main earliest=1690290078 latest=1690291207 SourceName=LLMNRDetection
+| table _time, ComputerName, SourceName, Message
+```
+Sysmon Event ID 22 can also be utilized to track DNS queries associated with non-existent/mistyped file shares.
+```
+index=main earliest=1690290078 latest=1690291207 EventCode=22 
+| table _time, Computer, user, Image, QueryName, QueryResults
+```
+
+Additionally, remember that Event 4648 can be used to detect explicit logons to rogue file shares which attackers might use to gather legitimate user credentials.
+```
+index=main earliest=1690290814 latest=1690291207 EventCode IN (4648) 
+| table _time, EventCode, source, name, user, Target_Server_Name, Message
+| sort 0 _time
+```
+## Detecting Kerberoasting/AS-REProasting 
+
+### Kerberoasting
+During the Kerberos authentication process, several security-related events are generated in the Windows Event Log when a user connects to an MSSQL server:
+
+- Event ID 4768 (Kerberos TGT Request): Occurs when the client workstation requests a TGT from the KDC, generating this event in the Security log on the domain controller.
+- Event ID 4769 (Kerberos Service Ticket Request): Generated after the client receives the TGT and requests a TGS for the MSSQL server's SPN.
+- Event ID 4624 (Logon): Logged in the Security log on the MSSQL server, indicating a successful logon once the client initiates a connection to the MSSQL server and logs in using the service account with the SPN to establish the connection.
+
+In the case of IIS service access using a service account with an SPN, an additional 4648 (A logon was attempted using explicit credentials) event will be generated as a logon event.
+Benign TGS Requests
+```
+index=main earliest=1690388417 latest=1690388630 EventCode=4648 OR (EventCode=4769 AND service_name=iis_svc) 
+| dedup RecordNumber 
+| rex field=user "(?<username>[^@]+)"
+| table _time, ComputerName, EventCode, name, username, Account_Name, Account_Domain, src_ip, service_name, Ticket_Options, Ticket_Encryption_Type, Target_Server_Name, Additional_Information
+```
+Detecting Kerberoasting - SPN Querying
+```
+index=main earliest=1690448444 latest=1690454437 source="WinEventLog:SilkService-Log" 
+| spath input=Message 
+| rename XmlEventData.* as * 
+| table _time, ComputerName, ProcessName, DistinguishedName, SearchFilter 
+| search SearchFilter="*(&(samAccountType=805306368)(servicePrincipalName=*)*"
+```
+Detecting Kerberoasting - TGS Requests
+```
+index=main earliest=1690450374 latest=1690450483 EventCode=4648 OR (EventCode=4769 AND service_name=iis_svc)
+| dedup RecordNumber
+| rex field=user "(?<username>[^@]+)"
+| bin span=2m _time 
+| search username!=*$ 
+| stats values(EventCode) as Events, values(service_name) as service_name, values(Additional_Information) as Additional_Information, values(Target_Server_Name) as Target_Server_Name by _time, username
+| where !match(Events,"4648")
+```
+Detecting Kerberoasting Using Transactions - TGS Requests
+```
+index=main earliest=1690450374 latest=1690450483 EventCode=4648 OR (EventCode=4769 AND service_name=iis_svc)
+| dedup RecordNumber
+| rex field=user "(?<username>[^@]+)"
+| search username!=*$ 
+| transaction username keepevicted=true maxspan=5s endswith=(EventCode=4648) startswith=(EventCode=4769) 
+| where closed_txn=0 AND EventCode = 4769
+| table _time, EventCode, service_name, username
+```
+
+### AS-REPRoasting
+ASREPRoasting is a technique used in Active Directory environments to target user accounts without pre-authentication enabled. In Kerberos, pre-authentication is a security feature requiring users to prove their identity before the TGT is issued. However, certain user accounts, such as those with unconstrained delegation, do not have pre-authentication enabled, making them susceptible to ASREPRoasting attacks.
+
+Detecting AS-REPRoasting - Querying Accounts With Pre-Auth Disabled
+```
+index=main earliest=1690392745 latest=1690393283 source="WinEventLog:SilkService-Log" 
+| spath input=Message 
+| rename XmlEventData.* as * 
+| table _time, ComputerName, ProcessName, DistinguishedName, SearchFilter 
+| search SearchFilter="*(samAccountType=805306368)(userAccountControl:1.2.840.113556.1.4.803:=4194304)*"
+```
+
+Detecting AS-REPRoasting - TGT Requests For Accounts With Pre-Auth Disabled
+```
+index=main earliest=1690392745 latest=1690393283 source="WinEventLog:Security" EventCode=4768 Pre_Authentication_Type=0
+| rex field=src_ip "(\:\:ffff\:)?(?<src_ip>[0-9\.]+)"
+| table _time, src_ip, user, Pre_Authentication_Type, Ticket_Options, Ticket_Encryption_Type
+```
+
