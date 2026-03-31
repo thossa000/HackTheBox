@@ -175,3 +175,44 @@ index=main earliest=1690443407 latest=1690443544 source="XmlWinEventLog:Microsof
 | stats count by _time, Computer, dest_ip, dest_port, Image, process
 | fields - count
 ```
+
+## Detecting Golden Tickets/Silver Tickets
+
+Detecting Golden Tickets
+```
+index=main earliest=1690451977 latest=1690452262 source="WinEventLog:Security" user!=*$ EventCode IN (4768,4769,4770) 
+| rex field=user "(?<username>[^@]+)"
+| rex field=src_ip "(\:\:ffff\:)?(?<src_ip_4>[0-9\.]+)"
+| transaction username, src_ip_4 maxspan=10h keepevicted=true startswith=(EventCode=4768)
+| where closed_txn=0
+| search NOT user="*$@*"
+| table _time, ComputerName, username, src_ip_4, service_name, category
+```
+
+Detecting Silver Tickets With Splunk Through User Correlation
+```
+index=main latest=1690448444 EventCode=4720
+| stats min(_time) as _time, values(EventCode) as EventCode by user
+| outputlookup users.csv
+
+index=main latest=1690545656 EventCode=4624
+| stats min(_time) as firstTime, values(ComputerName) as ComputerName, values(EventCode) as EventCode by user
+| eval last24h = 1690451977
+| where firstTime > last24h
+```| eval last24h=relative_time(now(),"-24h@h")```
+| convert ctime(firstTime)
+| convert ctime(last24h)
+| lookup users.csv user as user OUTPUT EventCode as Events
+| where isnull(Events)
+```
+
+Detecting Silver Tickets With Splunk By Targeting Special Privileges Assigned To New Logon
+```
+index=main latest=1690545656 EventCode=4672
+| stats min(_time) as firstTime, values(ComputerName) as ComputerName by Account_Name
+| eval last24h = 1690451977 
+```| eval last24h=relative_time(now(),"-24h@h") ```
+| where firstTime > last24h 
+| table firstTime, ComputerName, Account_Name 
+| convert ctime(firstTime)
+```
