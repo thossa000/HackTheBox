@@ -216,3 +216,38 @@ index=main latest=1690545656 EventCode=4672
 | table firstTime, ComputerName, Account_Name 
 | convert ctime(firstTime)
 ```
+
+Detecting Unconstrained Delegation Attacks
+```
+index=main earliest=1690544538 latest=1690544540 source="WinEventLog:Microsoft-Windows-PowerShell/Operational" EventCode=4104 Message="*TrustedForDelegation*" OR Message="*userAccountControl:1.2.840.113556.1.4.803:=524288*" 
+| table _time, ComputerName, EventCode, Message
+```
+
+Detecting Constrained Delegation Attacks
+```
+index=main earliest=1690544553 latest=1690562556 source="WinEventLog:Microsoft-Windows-PowerShell/Operational" EventCode=4104 Message="*msDS-AllowedToDelegateTo*" 
+| table _time, ComputerName, EventCode, Message
+
+# Detecting Constrained Delegation Attacks - Leveraging Sysmon Logs
+
+index=main earliest=1690562367 latest=1690562556 source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" 
+| eventstats values(process) as process by process_id
+| where EventCode=3 AND dest_port=88
+| table _time, Computer, dest_ip, dest_port, Image, process
+```
+
+Detecting DCSync
+```
+index=main earliest=1690544278 latest=1690544280 EventCode=4662 Message="*Replicating Directory Changes*"
+| rex field=Message "(?P<property>Replicating Directory Changes.*)"
+| table _time, user, object_file_name, Object_Server, property
+```
+
+Detecting DCShadow
+```
+index=main earliest=1690623888 latest=1690623890 EventCode=4742 
+| rex field=Message "(?P<gcspn>XX\/[a-zA-Z0-9\.\-\/]+)" 
+| table _time, ComputerName, Security_ID, Account_Name, user, gcspn 
+| search gcspn=*
+```
+
