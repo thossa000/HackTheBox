@@ -51,13 +51,6 @@ index=main earliest=1690280680 latest=1690289489 source="WinEventLog:Security" E
 | bin span=15m _time
 | stats values(user) as Users, dc(user) as dc_user by src, Source_Network_Address, dest, EventCode, Failure_Reason
 ```
-## Detecting RDP Brute Force Attacks
-```
-index="rdp_bruteforce" sourcetype="bro:rdp:json"
-| bin _time span=5m
-| stats count values(cookie) by _time, id.orig_h, id.resp_h
-| where count>30
-```
 ## Detecting Responder-like Attacks - LLMNR/NBT-NS/mDNS Poisoning
 ```
 index=main earliest=1690290078 latest=1690291207 SourceName=LLMNRDetection
@@ -251,3 +244,29 @@ index=main earliest=1690623888 latest=1690623890 EventCode=4742
 | search gcspn=*
 ```
 
+# Detecting Attacks with Zeek
+
+## Detecting RDP Brute Force Attacks
+```
+index="rdp_bruteforce" sourcetype="bro:rdp:json"
+| bin _time span=5m
+| stats count values(cookie) by _time, id.orig_h, id.resp_h
+| where count>30
+```
+
+## Detecting Beaconing Malware
+```
+index="cobaltstrike_beacon" sourcetype="bro:http:json" 
+| sort 0 _time
+| streamstats current=f last(_time) as prevtime by src, dest, dest_port
+| eval timedelta = _time - prevtime
+| eventstats avg(timedelta) as avg, count as total by src, dest, dest_port
+| eval upper=avg*1.1
+| eval lower=avg*0.9
+| where timedelta > lower AND timedelta < upper
+| stats count, values(avg) as TimeInterval by src, dest, dest_port, total
+| eval prcnt = (count/total)*100
+| where prcnt > 90 AND total > 10
+```
+
+## Detecting Nmap Port Scanning
