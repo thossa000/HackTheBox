@@ -270,3 +270,19 @@ index="cobaltstrike_beacon" sourcetype="bro:http:json"
 ```
 
 ## Detecting Nmap Port Scanning
+```
+index="cobaltstrike_beacon" sourcetype="bro:conn:json" orig_bytes=0 dest_ip IN (192.168.0.0/16, 172.16.0.0/12, 10.0.0.0/8) 
+| bin span=5m _time 
+| stats dc(dest_port) as num_dest_port by _time, src_ip, dest_ip 
+| where num_dest_port >= 3
+```
+
+## Detecting Kerberos Brute Force Attacks
+```
+index="kerberos_bruteforce" sourcetype="bro:kerberos:json"
+error_msg!=KDC_ERR_PREAUTH_REQUIRED
+success="false" request_type=AS
+| bin _time span=5m
+| stats count dc(client) as "Unique users" values(error_msg) as "Error messages" by _time, id.orig_h, id.resp_h
+| where count>30
+```
