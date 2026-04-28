@@ -286,3 +286,49 @@ success="false" request_type=AS
 | stats count dc(client) as "Unique users" values(error_msg) as "Error messages" by _time, id.orig_h, id.resp_h
 | where count>30
 ```
+## Detecting Kerberoasting
+```
+index="sharphound" sourcetype="bro:kerberos:json"
+request_type=TGS cipher="rc4-hmac" 
+forwardable="true" renewable="true"
+| table _time, id.orig_h, id.resp_h, request_type, cipher, forwardable, renewable, client, service
+```
+
+## Detecting Golden Tickets
+```
+index="golden_ticket_attack" sourcetype="bro:kerberos:json"
+| where client!="-"
+| bin _time span=1m 
+| stats values(client), values(request_type) as request_types, dc(request_type) as unique_request_types by _time, id.orig_h, id.resp_h
+| where request_types=="TGS" AND unique_request_types==1
+```
+
+## Detecting Cobalt Strike's PSExec 
+```
+index="cobalt_strike_psexec"
+sourcetype="bro:smb_files:json"
+action="SMB::FILE_OPEN" 
+name IN ("*.exe", "*.dll", "*.bat")
+path IN ("*\\c$", "*\\ADMIN$")
+size>0
+
+index=”change_service_config” sourcetype=”bro:dce_rpc:json”
+| spath endpoint
+| search endpoint=svcctl
+```
+
+## Detecting Zerologon
+```
+index="zerologon" endpoint="netlogon" sourcetype="bro:dce_rpc:json"
+| bin _time span=1m
+| where operation == "NetrServerReqChallenge" OR operation == "NetrServerAuthenticate3" OR operation == "NetrServerPasswordSet2"
+| stats count values(operation) as operation_values dc(operation) as unique_operations by _time, id.orig_h, id.resp_h
+| where unique_operations >= 2 AND count>100
+```
+
+## Detecting Exfiltration (HTTP)
+```
+index="cobaltstrike_exfiltration_http" sourcetype="bro:http:json" method=POST
+| stats sum(request_body_len) as TotalBytes by src, dest, dest_port
+| eval TotalBytes = TotalBytes/1024/1024
+```
