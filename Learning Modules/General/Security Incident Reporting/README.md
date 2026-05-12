@@ -21,3 +21,50 @@ This document will furnish regulators, insurers, and executive leadership with a
 
 ### 7. Feedback Loop!
 This involves revisiting and analyzing the incident to identify areas for improvement.
+
+## Elements of a Proper Incident Report
+
+### Executive Summary
+Many readers only read this section of the report, this should include:
+
+|Section	|Description|
+|:-:|:-:|
+|Incident ID	|Unique identifier for the incident.
+|Incident Overview	|Provide a concise summary of the incident's events (including initial detection) and explicitly state its type. Was it a ransomware attack, a large-scale data breach, or both? This should also encompass the estimated time and date of the incident, as well as its duration, the affected systems/data, and the status (ongoing, resolved, or escalated)
+|Key Findings	|Enumerate any salient findings that emerged from the incident. What was the root cause? Was a specific CVE exploited? What data, if any, was compromised, exfiltrated, or jeopardized?
+|Immediate Actions Taken	|Outline the immediate response measures taken. Were the affected systems promptly isolated? Was the root cause identified? Did we engage any third-party services, and if so, who were they?
+|Stakeholder Impact	|Assess the potential impact on various stakeholders. For instance, did any customers experience downtime, and what are the financial ramifications? Was employee data compromised? Was proprietary information at risk, and what are the potential repercussions?
+
+### Technical Analysis
+This section is where we dive deeply into the technical aspects, dissecting the events that transpired during the incident. It's likely to be the most voluminous part of the incident report. The following key points should be addressed:
+
+- Affected Systems & Data
+- Evidence Sources & Analysis
+- Indicators of Compromise (IoCs)
+- Root Cause Analysis
+- Technical Timeline
+- Nature of the Attack
+
+### Impact Analysis
+Provide an evaluation of the adverse effects that the incident had on the organization's data, operations, and reputation. This analysis aims to quantify and qualify the extent of the damage caused by the incident, identifying which systems, processes, or data sets have been compromised. It also assesses the potential business implications, such as financial loss, regulatory penalties, and reputational damage.
+
+### Response and Recovery Analysis
+Outline the specific actions taken to contain the security incident, eradicate the threat, and restore normal operations. This section serves as a chronological account of the measures implemented to mitigate the impact and prevent future occurrences of similar incidents.
+
+1. Immediate Response Actions
+- Revocation of Access
+- Containment Strategy
+
+2. Eradication Measures
+- Malware Removal
+- System Patching
+
+3. Recovery Steps
+- Data Restoration
+- System Validation
+
+4. Post-Incident Actions
+- Monitoring
+- Lessons Learned
+
+5. Appendices
